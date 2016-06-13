@@ -1,0 +1,23 @@
+{
+    "name": "hayko/mongodb",
+    "description": "An Mongodb datasource for CakePHP 3.0",
+    "type": "cakephp-plugin",
+    "require": {
+        "cakephp/cakephp": "~3.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~4.0"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "tiaguinho",
+            "email": "tiaguinhocab@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Hayko\\Mongodb\\": "src"
+        }
+    }
+}
