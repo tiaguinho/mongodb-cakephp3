@@ -2,7 +2,8 @@
 /**
  * 
  */
-namespace Mongodb\Datasource;
+
+namespace Hayko\Mongodb\Datasource;
 
 
 use Cake\Datasource\ConnectionInterface;
