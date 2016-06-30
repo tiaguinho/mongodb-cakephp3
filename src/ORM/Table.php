@@ -28,6 +28,17 @@ class Table extends CakeTable {
 		}
 
 	/**
+	 * always return true because mongo is schemaless
+	 * 
+	 * @param string $field
+	 * @return bool
+	 * @access public
+	 */
+		public function hasField($field) {
+			return true;
+		}
+
+	/**
 	 * find documents
 	 * 
 	 * @param string $type
