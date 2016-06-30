@@ -49,8 +49,8 @@ class MongoFinder {
 				unset($this->_options['conditions']);
 			}
 
-			if (!empty($this->_options['where'])) {
-				$this->__normalizeFieldsName($this->_options);
+			$this->__normalizeFieldsName($this->_options);
+			if (!empty($this->_options['where'])) {				
 				$this->__translateConditions($this->_options['where']);
 			}
 		}
@@ -214,6 +214,14 @@ class MongoFinder {
 			$this->_totalRows = $cursor->count();
 
 			if ($this->_totalRows > 0) {
+				if (!empty($this->_options['order'])) {
+					foreach ($this->_options['order'] as $field => $direction) {
+						$sort[$field] = $direction == 'asc' ? 1 : -1;
+					}
+
+					$cursor->sort($sort);
+				}
+
 				if (!empty($this->_options['page']) && $this->_options['page'] > 1) {
 					$skip = $this->_options['limit'] * ($this->_options['page'] - 1);
 					$cursor->skip($skip);
