@@ -7,14 +7,11 @@ An Mongodb datasource for CakePHP 3.0
 
 ## Installing via composer
 
-[composer](http://getcomposer.org). For existing applications you can add the
-following to your `composer.json` file:
+Install [composer](http://getcomposer.org) and run:
 
-    "require": {
-        "cakephp/elastic-search": "dev-master"
-    }
-
-And run `php composer.phar update`
+```bash
+composer require hayko/mongodb
+```
 
 ## Connecting the Plugin to your application
 
