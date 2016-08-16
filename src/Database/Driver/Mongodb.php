@@ -94,7 +94,36 @@ class Mongodb {
 	 */
 		public function connect() {
 			try {
-				
+				if (($this->config['ssh_user'] != '') && ($this->config['ssh_host'])) { // Because a user is required for all of the SSH authentication functions.
+					if (intval($this->config['ssh_port']) != 0) {
+						$port = $this->config['ssh_port'];
+					} else {
+						$port = 22; // The default SSH port.
+					}
+					$spongebob = ssh2_connect($this->config['ssh_host'], $port);
+					if (($this->config['ssh_pubkey_path'] != null) && ($this->config['ssh_privatekey_path'] != null)) {
+						if (!ssh2_auth_pubkey_file($spongebob, $this->config['ssh_user'], $this->config['ssh_pubkey_path'], $this->config['ssh_privatekey_path'])) {
+							// TODO: Enter code related to the failure of this function.
+							$establishConn = false;
+						} else {
+							$establishConn = true;
+						}
+					} elseif ($this->config['ssh_password'] != '') { // While some people *could* have blank passwords, it's a really stupid idea.
+						if (!ssh2_auth_password($spongebob, $this->config['ssh_user'], $this->config['ssh_password'])) {
+							// TODO: Return some error and rejoice that a connection could not be made using the idiot's credentials.
+							$establishConn = false;
+						} else {
+							$establishConn = true;
+						}
+					} else {
+						// TODO: If the person didn't supply any credentials, it's obvious that they can't login to a SSH tunnel. End the function
+						$establishConn = false;
+					}
+					
+					if ($establishConn) {
+						$tunnel = ssh_tunnel($spongebob, $this->config['host'], $this->config['port']);
+					}
+				}
 				$host = $this->createConnectionName();
 				$class = '\MongoClient';
 				if (!class_exists($class)) {

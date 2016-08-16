@@ -23,7 +23,6 @@ Plugin::load('Hayko/Mongodb');
 ```
 
 ## Defining a connection
-
 Now, you need to set the connection in your config/app.php file:
 
 ```php
@@ -37,12 +36,20 @@ Now, you need to set the connection in your config/app.php file:
         'username' => '',
         'password' => '',
         'database' => 'devmongo',
+        'ssh_host' => '',
+        'ssh_port' => 22,
+        'ssh_user' => '',
+        'ssh_password' => '',
+        'ssh_pubkey_path' => '',
+        'ssh_privatekey_path' => ''
     ],
 ],
 ```
 
-## Models
+### SSH tunnel variables (starting with 'ssh_')
+If you want to connect to MongoDB using a SSH tunnel, you need to set additional variables in your Datasource. Some variables are unnecessary, depending on how you intend to connect. IF you're connecting using a SSH key file, the ```ssh_pubkey_path``` and ```ssh_privatekey_path``` variables are necessary and the ```ssh_password``` variable is unnecessary. If you're connecting using a text-based password (which is **not** a wise idea), the reverse is true. The function needs, at minimum, ```ssh_host```, ```ssh_user``` and one method of authentication to establish a SSH tunnel.
 
+## Models
 After that, you need to load Hayko\Mongodb\ORM\Table in your tables class:
 
 ```php
