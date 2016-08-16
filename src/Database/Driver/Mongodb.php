@@ -101,27 +101,27 @@ class Mongodb {
 						$port = 22; // The default SSH port.
 					}
 					$spongebob = ssh2_connect($this->config['ssh_host'], $port);
+					if (!$spongebob) {
+						trigger_error('Unable to establish a SSH connection to the host at '. $this->config['ssh_host'] .':'. $port);
+					}
 					if (($this->config['ssh_pubkey_path'] != null) && ($this->config['ssh_privatekey_path'] != null)) {
 						if (!ssh2_auth_pubkey_file($spongebob, $this->config['ssh_user'], $this->config['ssh_pubkey_path'], $this->config['ssh_privatekey_path'])) {
-							// TODO: Enter code related to the failure of this function.
-							$establishConn = false;
-						} else {
-							$establishConn = true;
+							trigger_error('Unable to connect using the public keys specified at '. $this->config['ssh_pubkey_path'] .' (for the public key), '. $this->config['ssh_privatekey_path'] .' (for the private key) on '. $this->config['ssh_user'] .'@'. $this->config['ssh_host'] .':'. $port);
+							return false;
 						}
 					} elseif ($this->config['ssh_password'] != '') { // While some people *could* have blank passwords, it's a really stupid idea.
 						if (!ssh2_auth_password($spongebob, $this->config['ssh_user'], $this->config['ssh_password'])) {
-							// TODO: Return some error and rejoice that a connection could not be made using the idiot's credentials.
-							$establishConn = false;
-						} else {
-							$establishConn = true;
+							trigger_error('Unable to connect using the username and password combination for '. $this->config['ssh_user'] .'@'. $this->config['ssh_host'] .':'. $port);
+							return false;
 						}
 					} else {
-						// TODO: If the person didn't supply any credentials, it's obvious that they can't login to a SSH tunnel. End the function
-						$establishConn = false;
+						trigger_error('Neither a password or paths to public & private keys were specified in the configuration.');
+						return false;
 					}
 					
-					if ($establishConn) {
-						$tunnel = ssh_tunnel($spongebob, $this->config['host'], $this->config['port']);
+					$tunnel = ssh_tunnel($spongebob, $this->config['host'], $this->config['port']);
+					if (!$tunnel) {
+						trigger_error('A SSH tunnel was unable to be created to access '. $this->config['host'] .':'. $this->config['port'] .' on '. $this->config['ssh_user'] .'@'. $this->config['ssh_host'] .':'. $port);
 					}
 				}
 				$host = $this->createConnectionName();
