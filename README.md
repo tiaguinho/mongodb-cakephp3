@@ -41,7 +41,8 @@ Now, you need to set the connection in your config/app.php file:
         'ssh_user' => '',
         'ssh_password' => '',
         'ssh_pubkey_path' => '',
-        'ssh_privatekey_path' => ''
+        'ssh_privatekey_path' => '',
+        'ssh_pubkey_passphrase' => ''
     ],
 ],
 ```

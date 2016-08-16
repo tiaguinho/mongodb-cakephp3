@@ -2,10 +2,9 @@
 /**
  * 
  */
-
 namespace Hayko\Mongodb\Database;
 
-use Hayko\Mongodb\Database\Driver\Mongodb;
+use Hayko\Mongodb\Database\Driver\Mongodb as Haykodb;
 use Hayko\Mongodb\Database\Schema\MongoSchema;
 use Cake\Datasource\ConnectionInterface;
 use Cake\Database\Log\LoggedQuery;
@@ -15,7 +14,7 @@ use Cake\Database\Log\QueryLogger;
 class Connection implements ConnectionInterface {
 
 	/**
-	 * Contains the configuration param for thid connection
+	 * Contains the configuration param for this connection
 	 * 
 	 * @var array
 	 */
@@ -60,7 +59,6 @@ class Connection implements ConnectionInterface {
 	 */
 		public function __construct($config) {
 			$this->_config = $config;
-
 			$this->driver('mongodb', $config);
 
 			if (!empty($config['log'])) {
@@ -108,9 +106,7 @@ class Connection implements ConnectionInterface {
 			if ($driver === null) {
 				return $this->_driver;
 			}
-
-			$this->_driver = new Mongodb($config);
-
+			$this->_driver = new Haykodb($config);
 			return $this->_driver;
 		}
 
@@ -218,5 +214,4 @@ class Connection implements ConnectionInterface {
 	        $query->query = $sql;
 	        $this->logger()->log($query);
 	    }
-
 }
