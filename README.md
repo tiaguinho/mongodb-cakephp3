@@ -10,7 +10,7 @@ An Mongodb datasource for CakePHP 3.0
 Install [composer](http://getcomposer.org) and run:
 
 ```bash
-composer require hayko/mongodb
+composer require hayko/mongodb dev-master
 ```
 
 ## Connecting the Plugin to your application
