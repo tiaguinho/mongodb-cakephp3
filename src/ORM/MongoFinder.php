@@ -49,7 +49,7 @@ class MongoFinder
             unset($this->_options['conditions']);
         }
 
-        $this->__normalizeFieldsName($this->_options);
+//        $this->__normalizeFieldsName($this->_options); // How do I search nested data with it ?
         if (!empty($this->_options['where'])) {
             $this->__translateConditions($this->_options['where']);
         }
@@ -184,7 +184,7 @@ class MongoFinder
                 }
                 $value = str_replace('%', '.*', $value);
 
-                $conditions[substr($key, 0, -5)] = new \MongoRegex("/$value/i");
+                $conditions[substr($key, 0, -5)] = new \MongoDB\BSON\Regex("/$value/", "i");
                 unset($conditions[$key]);
             }
             if (!in_array(substr($key, -1), array('>', '<', '='))) {
