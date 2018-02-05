@@ -3,10 +3,11 @@
     "description": "An Mongodb datasource for CakePHP 3.0",
     "type": "cakephp-plugin",
     "require": {
-        "cakephp/cakephp": "~3.0"
+        "cakephp/cakephp": "^3.5",
+        "mongodb/mongodb": "^1.2"
     },
     "require-dev": {
-        "phpunit/phpunit": "~4.0"
+        "phpunit/phpunit": "^6.0"
     },
     "license": "MIT",
     "authors": [

@@ -19,8 +19,7 @@ class MongoSchema
     /**
      * Constructor
      *
-     * @param ConnectionInterface $conn
-     * @return void
+     * @param Mongodb $conn
      * @access public
      */
     public function __construct(Mongodb $conn)

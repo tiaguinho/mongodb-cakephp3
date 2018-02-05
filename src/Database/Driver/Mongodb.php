@@ -99,31 +99,31 @@ class Mongodb
     public function connect()
     {
         try {
-            if (($this->config['ssh_user'] != '') && ($this->config['ssh_host'])) { // Because a user is required for all of the SSH authentication functions.
-                if (intval($this->config['ssh_port']) != 0) {
-                    $port = $this->config['ssh_port'];
+            if (($this->_config['ssh_user'] != '') && ($this->_config['ssh_host'])) { // Because a user is required for all of the SSH authentication functions.
+                if (intval($this->_config['ssh_port']) != 0) {
+                    $port = $this->_config['ssh_port'];
                 } else {
                     $port = 22; // The default SSH port.
                 }
-                $spongebob = ssh2_connect($this->config['ssh_host'], $port);
+                $spongebob = ssh2_connect($this->_config['ssh_host'], $port);
                 if (!$spongebob) {
-                    trigger_error('Unable to establish a SSH connection to the host at '. $this->config['ssh_host'] .':'. $port);
+                    trigger_error('Unable to establish a SSH connection to the host at '. $this->_config['ssh_host'] .':'. $port);
                 }
-                if (($this->config['ssh_pubkey_path'] != null) && ($this->config['ssh_privatekey_path'] != null)) {
-                    if ($this->config['ssh_pubkey_passphrase'] != null) {
-                        if (!ssh2_auth_pubkey_file($spongebob, $this->config['ssh_user'], $this->config['ssh_pubkey_path'], $this->config['ssh_privatekey_path'], $this->config['ssh_pubkey_passphrase'])) {
-                            trigger_error('Unable to connect using the public keys specified at '. $this->config['ssh_pubkey_path'] .' (for the public key), '. $this->config['ssh_privatekey_path'] .' (for the private key) on '. $this->config['ssh_user'] .'@'. $this->config['ssh_host'] .':'. $port .' (Using a passphrase to decrypt the key)');
+                if (($this->_config['ssh_pubkey_path'] != null) && ($this->_config['ssh_privatekey_path'] != null)) {
+                    if ($this->_config['ssh_pubkey_passphrase'] != null) {
+                        if (!ssh2_auth_pubkey_file($spongebob, $this->_config['ssh_user'], $this->_config['ssh_pubkey_path'], $this->_config['ssh_privatekey_path'], $this->_config['ssh_pubkey_passphrase'])) {
+                            trigger_error('Unable to connect using the public keys specified at '. $this->_config['ssh_pubkey_path'] .' (for the public key), '. $this->_config['ssh_privatekey_path'] .' (for the private key) on '. $this->_config['ssh_user'] .'@'. $this->_config['ssh_host'] .':'. $port .' (Using a passphrase to decrypt the key)');
                             return false;
                         }
                     } else {
-                        if (!ssh2_auth_pubkey_file($spongebob, $this->config['ssh_user'], $this->config['ssh_pubkey_path'], $this->config['ssh_privatekey_path'])) {
-                            trigger_error('Unable to connect using the public keys specified at '. $this->config['ssh_pubkey_path'] .' (for the public key), '. $this->config['ssh_privatekey_path'] .' (for the private key) on '. $this->config['ssh_user'] .'@'. $this->config['ssh_host'] .':'. $port .' (Not using a passphrase to decrypt the key)');
+                        if (!ssh2_auth_pubkey_file($spongebob, $this->_config['ssh_user'], $this->_config['ssh_pubkey_path'], $this->_config['ssh_privatekey_path'])) {
+                            trigger_error('Unable to connect using the public keys specified at '. $this->_config['ssh_pubkey_path'] .' (for the public key), '. $this->_config['ssh_privatekey_path'] .' (for the private key) on '. $this->_config['ssh_user'] .'@'. $this->_config['ssh_host'] .':'. $port .' (Not using a passphrase to decrypt the key)');
                             return false;
                         }
                     }
-                } elseif ($this->config['ssh_password'] != '') { // While some people *could* have blank passwords, it's a really stupid idea.
-                    if (!ssh2_auth_password($spongebob, $this->config['ssh_user'], $this->config['ssh_password'])) {
-                        trigger_error('Unable to connect using the username and password combination for '. $this->config['ssh_user'] .'@'. $this->config['ssh_host'] .':'. $port);
+                } elseif ($this->_config['ssh_password'] != '') { // While some people *could* have blank passwords, it's a really stupid idea.
+                    if (!ssh2_auth_password($spongebob, $this->_config['ssh_user'], $this->_config['ssh_password'])) {
+                        trigger_error('Unable to connect using the username and password combination for '. $this->_config['ssh_user'] .'@'. $this->_config['ssh_host'] .':'. $port);
                         return false;
                     }
                 } else {
@@ -131,9 +131,9 @@ class Mongodb
                     return false;
                 }
 
-                $tunnel = ssh_tunnel($spongebob, $this->config['host'], $this->config['port']);
+                $tunnel = ssh_tunnel($spongebob, $this->_config['host'], $this->_config['port']);
                 if (!$tunnel) {
-                    trigger_error('A SSH tunnel was unable to be created to access '. $this->config['host'] .':'. $this->config['port'] .' on '. $this->config['ssh_user'] .'@'. $this->config['ssh_host'] .':'. $port);
+                    trigger_error('A SSH tunnel was unable to be created to access '. $this->_config['host'] .':'. $this->_config['port'] .' on '. $this->_config['ssh_user'] .'@'. $this->_config['ssh_host'] .':'. $port);
                 }
             }
 
@@ -252,5 +252,13 @@ class Mongodb
     public function isConnected()
     {
         return $this->connected;
+    }
+
+    /**
+     * @return bool
+     */
+    public function enabled()
+    {
+        return true;
     }
 }
