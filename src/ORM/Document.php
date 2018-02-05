@@ -4,6 +4,7 @@ namespace Hayko\Mongodb\ORM;
 
 use Cake\I18n\Time;
 use Cake\ORM\Entity;
+use Exception;
 
 class Document
 {
