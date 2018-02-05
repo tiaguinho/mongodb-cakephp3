@@ -16,13 +16,13 @@ class Table extends CakeTable
     /**
      * return MongoCollection object
      *
-     * @return MongoCollection
+     * @return \MongoDB\Collection
      * @access private
      */
     private function __getCollection()
     {
-        $driver = $this->connection()->driver();
-        $collection = $driver->getCollection($this->table());
+        $driver = $this->getConnection()->getDriver();
+        $collection = $driver->getCollection($this->getTable());
 
         return $collection;
     }
@@ -241,9 +241,9 @@ class Table extends CakeTable
         $collection = $this->__getCollection();
 
         if (is_object($collection)) {
-            $r = $collection->insert($data);
-            if ($r['ok'] == false) {
-                $success = false;
+            $result = $collection->insertOne($data);
+            if ($result->isAcknowledged()) {
+                $entity->set('_id', $result->getInsertedId());
             }
         }
         return $success;

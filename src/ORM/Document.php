@@ -55,7 +55,7 @@ class Document
                         break;
 
                     case 'MongoDB\BSON\UTCDateTime':
-                        $document[$field] = new Time($value->sec);
+                        $document[$field] = $value->toDateTime();
                         break;
 
                     default:
