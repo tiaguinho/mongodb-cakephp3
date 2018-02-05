@@ -31,6 +31,9 @@ class MongoSchema
      * Describe
      *
      * @access public
+     * @param $name
+     * @param array $options
+     * @return Table
      */
     public function describe($name, array $options = [])
     {
@@ -42,7 +45,7 @@ class MongoSchema
         $table = new Table(['table' => $name]);
 
         if (empty($table->primaryKey())) {
-            $table->addColumn('_id', ['type' => 'string', 'default' => new \MongoId(), 'null' => false]);
+            $table->addColumn('_id', ['type' => 'string', 'default' => new \MongoDB\BSON\ObjectId(), 'null' => false]);
             $table->addConstraint('_id', ['type' => 'primary', 'columns' => ['_id']]);
         }
 

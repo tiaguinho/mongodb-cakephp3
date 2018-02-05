@@ -6,10 +6,8 @@ use ArrayObject;
 use BadMethodCallException;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\Exception\InvalidPrimaryKeyException;
-use Cake\ORM\Exception\MissingEntityException;
 use Cake\ORM\RulesChecker;
 use Cake\ORM\Table as CakeTable;
-use Hayko\Mongodb\ORM\Behavior\SchemalessBehavior;
 use RuntimeException;
 
 class Table extends CakeTable
@@ -46,7 +44,7 @@ class Table extends CakeTable
      *
      * @param string $type
      * @param array $options
-     * @return MongoQuery|Cake\ORM\Entity
+     * @return MongoQuery|\Cake\ORM\Entity
      * @access public
      */
     public function find($type = 'all', $options = [])
@@ -74,7 +72,7 @@ class Table extends CakeTable
      *
      * @param string $primaryKey
      * @param array $options
-     * @return Cake\ORM\Entity
+     * @return \Cake\ORM\Entity
      * @access public
      */
     public function get($primaryKey, $options = [])
@@ -98,7 +96,7 @@ class Table extends CakeTable
     /**
      * remove one document
      *
-     * @param Cake\Datasource\EntityInterface $entity
+     * @param \Cake\Datasource\EntityInterface $entity
      * @param array $options
      * @return bool
      * @access public
@@ -107,18 +105,18 @@ class Table extends CakeTable
     {
         try {
             $collection = $this->__getCollection();
-            $success = $collection->remove(['_id' => new \MongoId($entity->_id)]);
+            $success = $collection->remove(['_id' => new \MongoDB\BSON\ObjectId($entity->_id)]);
         } catch (\MongoException $e) {
             trigger_error($e->getMessage());
             return false;
         }
-        return true;
+        return $success;
     }
 
     /**
      * save the document
      *
-     * @param \Cake\ORM\Entity $entity
+     * @param EntityInterface $entity
      * @param array $options
      * @return mixed $success
      * @access public
@@ -176,10 +174,10 @@ class Table extends CakeTable
 
         //convert to mongodate
         if (isset($data['created'])) {
-            $data['created']  = new \MongoDate(strtotime($data['created']->toDateTimeString()));
+            $data['created']  = new \MongoDB\BSON\UTCDateTime(strtotime($data['created']->toDateTimeString()));
         }
         if (isset($data['modified'])) {
-            $data['modified'] = new \MongoDate(strtotime($data['modified']->toDateTimeString()));
+            $data['modified'] = new \MongoDB\BSON\UTCDateTime(strtotime($data['modified']->toDateTimeString()));
         }
 
         if ($isNew) {
@@ -267,7 +265,7 @@ class Table extends CakeTable
         $collection = $this->__getCollection();
 
         if (is_object($collection)) {
-            $r = $collection->update(['_id' => new \MongoId($entity->_id)], $data);
+            $r = $collection->update(['_id' => new \MongoDB\BSON\ObjectId($entity->_id)], $data);
             if ($r['ok'] == false) {
                 $success = false;
             }
@@ -276,10 +274,10 @@ class Table extends CakeTable
     }
 
     /**
-     * create new MongoId
+     * create new MongoDB\BSON\ObjectId
      *
      * @param mixed $primary
-     * @return MongoId
+     * @return \MongoDB\BSON\ObjectId
      * @access public
      */
     protected function _newId($primary)
@@ -288,6 +286,6 @@ class Table extends CakeTable
             return null;
         }
 
-        return new \MongoId();
+        return new \MongoDB\BSON\ObjectId();
     }
 }

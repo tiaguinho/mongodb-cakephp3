@@ -2,15 +2,13 @@
 
 namespace Hayko\Mongodb\ORM;
 
-use Cake\Datasource\EntityInterface;
-
 class MongoFinder
 {
 
     /**
      * connection with db
      *
-     * @var Mongo $_connection
+     * @var \MongoDB\Client $_connection
      * @access protected
      */
     protected $_connection;
@@ -61,7 +59,7 @@ class MongoFinder
      * connection
      *
      * @param Mongo $connection
-     * @return Mongo
+     * @return \MongoDB\Client
      * @access public
      */
     public function connection($connection = null)
@@ -108,6 +106,7 @@ class MongoFinder
      *
      * @param array $conditions
      * @access private
+     * @return array
      */
     private function __translateConditions(&$conditions)
     {
@@ -211,13 +210,13 @@ class MongoFinder
     /**
      * try to find documents
      *
-     * @return MongoCursor $cursor
+     * @return \MongoDB\Driver\Cursor $cursor
      * @access public
      */
     public function find()
     {
         $cursor = $this->connection()->find($this->_options['where'], $this->_options['fields']);
-        $this->_totalRows = $cursor->count();
+        $this->_totalRows = count($cursor);
 
         if ($this->_totalRows > 0) {
             if (!empty($this->_options['order'])) {
@@ -244,7 +243,7 @@ class MongoFinder
     /**
      * return all documents
      *
-     * @return MongoCursor
+     * @return \MongoDB\Driver\Cursor
      * @access public
      */
     public function findAll()
@@ -255,7 +254,7 @@ class MongoFinder
     /**
      * return all documents
      *
-     * @return MongoCursor
+     * @return \MongoDB\Driver\Cursor
      * @access public
      */
     public function findList()
@@ -267,12 +266,12 @@ class MongoFinder
      * return document with _id = $primaKey
      *
      * @param string $primaryKey
-     * @return MongoCursor
+     * @return \MongoDB\Driver\Cursor
      * @access public
      */
     public function get($primaryKey)
     {
-        $this->_options['where']['_id'] = new \MongoId($primaryKey);
+        $this->_options['where']['_id'] = new \MongoDB\BSON\ObjectId($primaryKey);
 
         return $this->find();
     }

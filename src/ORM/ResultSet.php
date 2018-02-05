@@ -24,11 +24,11 @@ class ResultSet
     /**
      * set results and table name
      *
-     * @param \MongoCursor $cursor
+     * @param \MongoDB\Driver\Cursor $cursor
      * @param string $table
      * @access public
      */
-    public function __construct(\MongoCursor $cursor, $table)
+    public function __construct(\MongoDB\Driver\Cursor $cursor, $table)
     {
         $this->_results = iterator_to_array($cursor);
         $this->_table = $table;
@@ -37,7 +37,7 @@ class ResultSet
     /**
      * convert mongo documents in cake entitys
      *
-     * @return []Cake\ORM\Entity $results
+     * @return \Cake\ORM\Entity[] $results
      * @access public
      */
     public function toArray()

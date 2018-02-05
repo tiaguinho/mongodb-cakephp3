@@ -40,20 +40,21 @@ class Document
     /**
      * convert mongo document into cake entity
      *
-     * @return Cake\ORM\Entity
+     * @return \Cake\ORM\Entity
      * @access public
      */
     public function cakefy()
     {
+        $document = [];
         foreach ($this->_document as $field => $value) {
             $type = gettype($value);
             if ($type == 'object') {
                 switch (get_class($value)) {
-                    case 'MongoId':
+                    case 'MongoDB\BSON\ObjectId':
                         $document[$field] = $value->__toString();
                         break;
 
-                    case 'MongoDate':
+                    case 'MongoDB\BSON\UTCDateTime':
                         $document[$field] = new Time($value->sec);
                         break;
 

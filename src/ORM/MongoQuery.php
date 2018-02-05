@@ -2,8 +2,6 @@
 
 namespace Hayko\Mongodb\ORM;
 
-use Cake\Datasource\EntityInterface;
-
 class MongoQuery
 {
 

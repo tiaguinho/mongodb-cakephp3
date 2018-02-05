@@ -2,7 +2,8 @@
 
 namespace Hayko\Mongodb\Database\Driver;
 
-use MongoDB as Mongo;
+use Exception;
+use MongoDB\Driver\ReadPreference;
 
 class Mongodb
 {
@@ -28,7 +29,7 @@ class Mongodb
     /**
      * Database Instance
      *
-     * @var resource
+     * @var \MongoDB\Database
      * @access protected
      */
     protected $_db = null;
@@ -45,7 +46,7 @@ class Mongodb
      * Base Config
      *
      * set_string_id:
-     *        true: In read() method, convert MongoId object to string and set it to array 'id'.
+     *        true: In read() method, convert MongoDB\BSON\ObjectId object to string and set it to array 'id'.
      *        false: not convert and set.
      *
      * @var array
@@ -138,44 +139,30 @@ class Mongodb
             }
 
             $host = $this->createConnectionName();
-            $class = '\MongoClient';
-            if (!class_exists($class)) {
-                $class = '\Mongo';
-                if (!class_exists($class)) {
-                    $class = '\MongoDB';
-                }
+
+            if (version_compare($this->_driverVersion, '1.3.0', '<')) {
+                throw new Exception(__("Please update your MongoDB PHP Driver ({0} < {1})", $this->_driverVersion, '1.3.0'));
             }
 
             if (isset($this->_config['replicaset']) && count($this->_config['replicaset']) === 2) {
-                $this->connection = new $class($this->_config['replicaset']['host'], $this->_config['replicaset']['options']);
-            } elseif ($this->_driverVersion >= '1.3.0') {
-                $this->connection = new $class($host);
-            } elseif ($this->_driverVersion >= '1.2.0') {
-                $this->connection = new $class($host, array("persist" => $this->_config['persistent']));
+                $this->connection = new \MongoDB\Client($this->_config['replicaset']['host'], $this->_config['replicaset']['options']);
             } else {
-                $this->connection = new $class($host, true, $this->_config['persistent']);
+                $this->connection = new \MongoDB\Client($host);
             }
 
             if (isset($this->_config['slaveok'])) {
-                if (method_exists($this->connection, 'setSlaveOkay')) {
-                    $this->connection->setSlaveOkay($this->_config['slaveok']);
-                } else {
-                    $this->connection->setReadPreference($this->_config['slaveok']
-                        ? $class::RP_SECONDARY_PREFERRED : $class::RP_PRIMARY);
-                }
+                $this->connection->getManager()->selectServer(
+                    new ReadPreference($this->_config['slaveok']
+                        ? ReadPreference::RP_SECONDARY_PREFERRED
+                        : ReadPreference::RP_PRIMARY
+                    )
+                );
             }
 
-            if ($this->_db = $this->connection->selectDB($this->_config['database'])) {
-                if (!empty($this->_config['login']) && $this->_driverVersion < '1.2.0') {
-                    $return = $this->_db->authenticate($this->_config['login'], $this->_config['password']);
-                    if (!$return || !$return['ok']) {
-                        trigger_error('MongodbSource::__construct ' . $return['errmsg']);
-                        return false;
-                    }
-                }
+            if ($this->_db = $this->connection->selectDatabase($this->_config['database'])) {
                 $this->connected = true;
             }
-        } catch (MongoException $e) {
+        } catch (Exception $e) {
             trigger_error($e->getMessage());
         }
 
@@ -210,7 +197,7 @@ class Mongodb
      * return MongoCollection object
      *
      * @param string $collectionName
-     * @return \MongoCollection
+     * @return \MongoDB\Collection
      * @access public
      */
     public function getCollection($collectionName = '')
@@ -220,7 +207,8 @@ class Mongodb
                 $this->connect();
             }
 
-            return new \MongoCollection($this->_db, $collectionName);
+            $manager = new \MongoDB\Driver\Manager($this->createConnectionName());
+            return new \MongoDB\Collection($manager, $this->_config['database'], $collectionName);
         }
         return false;
     }
@@ -234,7 +222,6 @@ class Mongodb
     public function disconnect()
     {
         if ($this->connected) {
-            $this->connected = !$this->connection->close();
             unset($this->_db, $this->connection);
 
             return !$this->connected;
@@ -246,7 +233,7 @@ class Mongodb
     /**
      * database connection status
      *
-     * @return booelan
+     * @return bool
      * @access public
      */
     public function isConnected()
