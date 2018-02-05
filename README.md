@@ -3,7 +3,7 @@
 Mongodb for Cakephp3
 ========
 
-An Mongodb datasource for CakePHP 3.0
+An Mongodb datasource for CakePHP 3.5
 
 ## Installing via composer
 
@@ -72,6 +72,15 @@ So, if you want to find something, you to do like the example:
 $this->Categories->find('all', ['conditions' => ['name' => 'teste']]);
 $this->Categories->find('all', ['conditions' => ['name LIKE' => 'teste']]);
 $this->Categories->find('all', ['conditions' => ['name' => 'teste'], 'limit' => 3]);
+```
+
+You can also use the advanced conditions of MongoDB using the `MongoDB\BSON` namespace
+
+```php
+$this->Categories->find('all', ['conditions' => [
+    '_id' => new \MongoDB\BSON\ObjectId('5a7861909db0b47d605c3865'),
+    'foo.bar' => new \MongoDB\BSON\Regex('^(foo|bar)?baz$', 'i')
+]]);
 ```
 
 ## LICENSE
