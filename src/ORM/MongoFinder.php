@@ -124,7 +124,7 @@ class MongoFinder
                 unset($conditions[$key]);
                 foreach ($value as $key => $part) {
                     $part = array($key => $part);
-                    $this->__translateConditions($Model, $part);
+                    $this->__translateConditions($part);
                     $conditions['$or'][] = $part;
                 }
                 continue;
@@ -146,7 +146,7 @@ class MongoFinder
                 continue;
             }
             if (is_numeric($key) && is_array($value)) {
-                if ($this->_translateConditions($Model, $value)) {
+                if ($this->__translateConditions($value)) {
                     continue;
                 }
             }
@@ -157,10 +157,6 @@ class MongoFinder
 
                 if (in_array(substr($childKey, -1), array('>', '<', '='))) {
                     $parts = explode(' ', $childKey);
-                    $operator = array_pop($parts);
-                    if ($operator = $this->_translateOperator($Model, $operator)) {
-                        $childKey = implode(' ', $parts);
-                    }
                 } else {
                     $conditions[$childKey]['$nin'] = (array)$childValue;
                     unset($conditions['NOT']);
@@ -191,14 +187,8 @@ class MongoFinder
                 continue;
             }
             $parts = explode(' ', $key);
-            $operator = array_pop($parts);
-            if ($operator = $this->_translateOperator($Model, $operator)) {
-                $newKey = implode(' ', $parts);
-                $conditions[$newKey][$operator] = $value;
-                unset($conditions[$key]);
-            }
             if (is_array($value)) {
-                if ($this->_translateConditions($Model, $value)) {
+                if ($this->__translateConditions($value)) {
                     continue;
                 }
             }
