@@ -43,6 +43,7 @@ class Document
      *
      * @return \Cake\ORM\Entity
      * @access public
+     * @throws Exception
      */
     public function cakefy()
     {
@@ -59,9 +60,13 @@ class Document
                         $document[$field] = $value->toDateTime();
                         break;
 
+                    case 'MongoDB\Model\BSONDocument':
                     default:
-                        throw new Exception(get_class($value) . ' conversion not implemented.');
-                        break;
+                        if ($value instanceof \MongoDB\BSON\Serializable) {
+                            $document[$field] = $value->bsonSerialize();
+                        } else {
+                            throw new Exception(get_class($value) . ' conversion not implemented.');
+                        }
                 }
             } elseif ($type == 'array') {
                 $document[$field] = $this->cakefy($value);
