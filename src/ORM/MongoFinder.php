@@ -51,7 +51,33 @@ class MongoFinder
 
 //        $this->__normalizeFieldsName($this->_options); // How do I search nested data with it ?
         if (!empty($this->_options['where'])) {
+            $this->__translateNestedArray($this->_options['where']);
             $this->__translateConditions($this->_options['where']);
+        }
+    }
+
+    /**
+     * Convert ['foo' => 'bar', ['baz' => true]]
+     * to
+     * ['$and' => [['foo', 'bar'], ['$and' => ['baz' => true]]]
+     * @param $conditions
+     */
+    private function __translateNestedArray(&$conditions)
+    {
+        $and = isset($conditions['$and']) ? (array)$conditions['$and'] : [];
+        foreach ($conditions as $key => $value) {
+            if (is_numeric($key) && is_array($value)) {
+                unset($conditions[$key]);
+                $and[] = $value;
+            } elseif (is_array($value) && !in_array(strtoupper($key), ['OR', '$OR', 'AND', '$AND'])) {
+                $this->__translateNestedArray($conditions[$key], $key);
+            }
+        }
+        if (!empty($and)) {
+            $conditions['$and'] = $and;
+            foreach (array_keys($conditions['$and']) as $key) {
+                $this->__translateNestedArray($conditions['$and'][$key]);
+            }
         }
     }
 

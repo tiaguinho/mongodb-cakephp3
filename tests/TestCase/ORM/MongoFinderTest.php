@@ -112,7 +112,6 @@ class MongoFinderTest extends TestCase
         $entity = $this->table->newEntity($data);
         $this->assertNotFalse($this->table->save($entity));
 
-        // FIXME
         $condition = [
             'foo < bar'
         ];
@@ -123,12 +122,11 @@ class MongoFinderTest extends TestCase
         ];
         $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
 
-        // FIXME
         $condition = [
             ['foo' => 'bar'],
-            [['baz' => true]]
+            [['baz' => true], ['foo LIKE' => 'b%']]
         ];
-//        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
+        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
 
         // FIXME
         $condition = [
