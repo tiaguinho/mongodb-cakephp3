@@ -110,91 +110,63 @@ class MongoFinder
      */
     private function __translateConditions(&$conditions)
     {
-        foreach ($conditions as $key => &$value) {
-            $uKey = strtoupper($key);
-            if (substr($uKey, -6) === 'NOT IN') {
-                // 'Special' case because it has a space in it, and it's the whole key
-                $field = trim(substr($key, 0, -6));
-
-                $conditions[$field]['$nin'] = $value;
-                unset($conditions[$key]);
-                continue;
-            }
-            if ($uKey === 'OR') {
-                unset($conditions[$key]);
-                foreach ($value as $key => $part) {
-                    $part = array($key => $part);
-                    $this->__translateConditions($part);
-                    $conditions['$or'][] = $part;
+        $operators = '<|>|<=|>=|!=|=|<>|NOT IN|NOT LIKE|IN|LIKE';
+        foreach ($conditions as $key => $value) {
+            if (is_numeric($key)) {
+                if (is_array($value)) {
+                    $this->__translateConditions($conditions[$key]);
                 }
-                continue;
-            }
-            if ($key === '_id' && is_array($value)) {
-                //_id=>array(1,2,3) pattern, set  $in operator
-                $isMongoOperator = false;
-                foreach ($value as $idKey => $idValue) {
-                    //check a mongo operator exists
-                    if (substr($idKey, 0, 1) === '$') {
-                        $isMongoOperator = true;
-                        continue;
+            } elseif (preg_match("/^(.+) ($operators)$/i", $key, $matches)) {
+                list(, $field, $operator) = $matches;
+                $operator = $this->__translateOperator(strtoupper($operator));
+                unset($conditions[$key]);
+                if (substr($operator, -4) === 'LIKE') {
+                    $value = str_replace('%', '.*', $value);
+                    $value = str_replace('?', '.', $value);
+                    if ($operator === 'NOT LIKE') {
+                        $value = "(?!$value)";
                     }
+                    $operator = '$regex';
+                    $value = new \MongoDB\BSON\Regex("^$value$", "i");
                 }
-                unset($idKey, $idValue);
-                if ($isMongoOperator === false) {
-                    $conditions[$key] = array('$in' => $value);
-                }
-                continue;
-            }
-            if (is_numeric($key) && is_array($value)) {
-                if ($this->__translateConditions($value)) {
-                    continue;
-                }
-            }
-            if (substr($uKey, -3) === 'NOT') {
-                // 'Special' case because it's awkward
-                $childKey = key($value);
-                $childValue = current($value);
-
-                if (in_array(substr($childKey, -1), array('>', '<', '='))) {
-                    $parts = explode(' ', $childKey);
-                } else {
-                    $conditions[$childKey]['$nin'] = (array)$childValue;
-                    unset($conditions['NOT']);
-                    continue;
-                }
-
-                $conditions[$childKey]['$not'][$operator] = $childValue;
-                unset($conditions['NOT']);
-                continue;
-            }
-            if (substr($uKey, -4) == 'LIKE') {
-                if ($value[0] === '%') {
-                    $value = substr($value, 1);
-                } else {
-                    $value = '^' . $value;
-                }
-                if (substr($value, -1) === '%') {
-                    $value = substr($value, 0, -1);
-                } else {
-                    $value .= '$';
-                }
-                $value = str_replace('%', '.*', $value);
-
-                $conditions[substr($key, 0, -5)] = new \MongoDB\BSON\Regex("/$value/", "i");
+                $conditions[$field][$operator] = $value;
+            } elseif (preg_match('/^OR|AND|NOT$/i', $key, $match)) {
+                $operator = '$'.strtolower($match[0]);
                 unset($conditions[$key]);
-            }
-            if (!in_array(substr($key, -1), array('>', '<', '='))) {
-                continue;
-            }
-            $parts = explode(' ', $key);
-            if (is_array($value)) {
-                if ($this->__translateConditions($value)) {
-                    continue;
+                foreach ($value as $nestedKey => $nestedValue) {
+                    if (!is_array($nestedValue)) {
+                        $nestedValue = [$nestedKey => $nestedValue];
+                        $conditions[$operator][$nestedKey] = $nestedValue;
+                    } else {
+                        $conditions[$operator][$nestedKey] = $nestedValue;
+                    }
+                    $this->__translateConditions($conditions[$operator][$nestedKey]);
+
                 }
             }
         }
-
         return $conditions;
+    }
+
+    /**
+     * Convert logical operator to MongoDB Query Selectors
+     * @param string $operator
+     * @return string
+     */
+    private function __translateOperator($operator)
+    {
+        switch ($operator) {
+            case '<': return '$lt';
+            case '<=': return '$lte';
+            case '>': return '$gt';
+            case '>=': return '$gte';
+            case '=': return '$eq';
+            case '!=':
+            case '<>': return '$ne';
+            case 'NOT IN': return '$nin';
+            case 'IN': return '$in';
+            default: return $operator;
+        }
     }
 
     /**

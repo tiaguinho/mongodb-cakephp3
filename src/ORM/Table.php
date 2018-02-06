@@ -53,7 +53,7 @@ class Table extends CakeTable
         $method = 'find' . ucfirst($type);
         if (method_exists($query, $method)) {
             $mongoCursor = $query->{$method}();
-            $results = new ResultSet($mongoCursor, $this->alias());
+            $results = new ResultSet($mongoCursor, $this->getAlias());
 
             if (isset($options['whitelist'])) {
                 return new MongoQuery($results->toArray(), $query->count());
@@ -74,6 +74,7 @@ class Table extends CakeTable
      * @param array $options
      * @return \Cake\ORM\Entity
      * @access public
+     * @throws \Exception
      */
     public function get($primaryKey, $options = [])
     {

@@ -66,11 +66,10 @@ class MongoFinderTest extends TestCase
         ];
         $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
 
-        // FIXME
         $condition = [
             'foo LIKE' => 'b%r'
         ];
-//        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
+        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
 
         $condition = [
             'foo' => ['$regex' => 'b.*r']
@@ -82,34 +81,31 @@ class MongoFinderTest extends TestCase
         ];
         $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
 
-        // FIXME
         $condition = [
             'OR' => [
                 ['foo' => 'bar'],
                 ['foo' => 'baz'],
             ]
         ];
-//        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
+        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
 
-        // FIXME
         $condition = [
             'AND' => [
                 ['foo' => 'bar'],
                 ['baz' => true],
             ]
         ];
-//        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
+        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
 
 
         $data = ['foo' => 125];
         $entity = $this->table->newEntity($data);
         $this->assertNotFalse($this->table->save($entity));
 
-        // FIXME
         $condition = [
             'foo >=' => 100
         ];
-//        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
+        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
 
 
         $data = ['foo' => 125, 'bar' => 150];
@@ -146,14 +142,14 @@ class MongoFinderTest extends TestCase
         ];
 //        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
 
-        // FIXME (baz is not in condition)
+        // FIXME
         $condition = [
             'NOT' => [
                 'foo' => 'bar',
                 'baz' => true
             ]
         ];
-        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
+//        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
 
         // FIXME
         $entity = $this->table->find('all')[0];
