@@ -112,11 +112,9 @@ class MongoFinder
     {
         $operators = '<|>|<=|>=|!=|=|<>|NOT IN|NOT LIKE|IN|LIKE';
         foreach ($conditions as $key => $value) {
-            if (is_numeric($key)) {
-                if (is_array($value)) {
-                    $this->__translateConditions($conditions[$key]);
-                }
-            } elseif (preg_match("/^(.+) ($operators)$/i", $key, $matches)) {
+            if (is_numeric($key) && is_array($value)) {
+                $this->__translateConditions($conditions[$key]);
+            } elseif (preg_match("/^(.+) ($operators)$/", $key, $matches)) {
                 list(, $field, $operator) = $matches;
                 $operator = $this->__translateOperator(strtoupper($operator));
                 unset($conditions[$key]);
@@ -143,8 +141,22 @@ class MongoFinder
                     $this->__translateConditions($conditions[$operator][$nestedKey]);
 
                 }
+            } elseif (preg_match("/^(.+) (<|>|<=|>=|!=|=) (.+)$/", $key, $matches)
+                || (is_string($value) && preg_match("/^(.+) (<|>|<=|>=|!=|=) (.+)$/", $value, $matches))
+            ) {
+                unset($conditions[$key]);
+                array_splice($matches, 0, 1);
+                $conditions['$where'] = implode(' ', array_map(function($v) {
+                    if (preg_match("/^[\w.]+$/", $v)
+                        && substr($v, 0, strlen('this')) !== 'this'
+                    ) {
+                        $v = "this.$v";
+                    }
+                    return $v;
+                }, $matches));
             }
         }
+
         return $conditions;
     }
 

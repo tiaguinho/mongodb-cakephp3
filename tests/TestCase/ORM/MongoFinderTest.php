@@ -116,7 +116,7 @@ class MongoFinderTest extends TestCase
         $condition = [
             'foo < bar'
         ];
-//        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
+        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
 
         $condition = [
             '$where' => "this.foo < this.bar"
