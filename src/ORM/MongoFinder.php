@@ -136,12 +136,16 @@ class MongoFinder
      */
     private function __translateConditions(&$conditions)
     {
-        $operators = '<|>|<=|>=|!=|=|<>|NOT IN|NOT LIKE|IN|LIKE';
+        $operators = '<|>|<=|>=|!=|=|<>|IN|LIKE';
         foreach ($conditions as $key => $value) {
             if (is_numeric($key) && is_array($value)) {
                 $this->__translateConditions($conditions[$key]);
             } elseif (preg_match("/^(.+) ($operators)$/", $key, $matches)) {
                 list(, $field, $operator) = $matches;
+                if (substr($field, -3) === 'NOT') {
+                    $field = substr($field, 0, strlen($field) -4);
+                    $operator = 'NOT '.$operator;
+                }
                 $operator = $this->__translateOperator(strtoupper($operator));
                 unset($conditions[$key]);
                 if (substr($operator, -4) === 'LIKE') {
