@@ -20,7 +20,8 @@
     ],
     "autoload": {
         "psr-4": {
-            "Hayko\\Mongodb\\": "src"
+            "Hayko\\Mongodb\\": "src",
+            "Hayko\\Mongodb\\Test\\": "tests"
         }
     }
 }

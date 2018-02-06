@@ -105,7 +105,7 @@ class Table extends CakeTable
     {
         try {
             $collection = $this->__getCollection();
-            $success = $collection->remove(['_id' => new \MongoDB\BSON\ObjectId($entity->_id)]);
+            $success = $collection->deleteOne(['_id' => new \MongoDB\BSON\ObjectId($entity->_id)]);
         } catch (\MongoException $e) {
             trigger_error($e->getMessage());
             return false;
