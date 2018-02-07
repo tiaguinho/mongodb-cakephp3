@@ -4,12 +4,11 @@ namespace Hayko\Mongodb\ORM;
 
 use ArrayObject;
 use BadMethodCallException;
+use Cake\Chronos\ChronosInterface;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\Exception\InvalidPrimaryKeyException;
-use Cake\ORM\Exception\MissingEntityException;
 use Cake\ORM\RulesChecker;
 use Cake\ORM\Table as CakeTable;
-use Hayko\Mongodb\ORM\Behavior\SchemalessBehavior;
 use RuntimeException;
 
 class Table extends CakeTable
@@ -18,13 +17,16 @@ class Table extends CakeTable
     /**
      * return MongoCollection object
      *
-     * @return MongoCollection
-     * @access private
+     * @return \MongoDB\Collection
+     * @throws \Exception
      */
     private function __getCollection()
     {
-        $driver = $this->connection()->driver();
-        $collection = $driver->getCollection($this->table());
+        $driver = $this->getConnection()->getDriver();
+        if (!$driver instanceof \Hayko\Mongodb\Database\Driver\Mongodb) {
+            throw new \Exception("Driver must be an instance of 'Hayko\Mongodb\Database\Driver\Mongodb'");
+        }
+        $collection = $driver->getCollection($this->getTable());
 
         return $collection;
     }
@@ -46,16 +48,23 @@ class Table extends CakeTable
      *
      * @param string $type
      * @param array $options
-     * @return MongoQuery|Cake\ORM\Entity
+     * @return \Cake\ORM\Entity|\Cake\ORM\Entity[]|MongoQuery
      * @access public
+     * @throws \Exception
      */
     public function find($type = 'all', $options = [])
     {
         $query = new MongoFinder($this->__getCollection(), $options);
         $method = 'find' . ucfirst($type);
         if (method_exists($query, $method)) {
+            $alias = $this->getAlias();
             $mongoCursor = $query->{$method}();
-            $results = new ResultSet($mongoCursor, $this->alias());
+            if ($mongoCursor instanceof \MongoDB\Model\BSONDocument) {
+                return (new Document($mongoCursor, $alias))->cakefy();
+            } elseif (is_array($mongoCursor)) {
+                return $mongoCursor;
+            }
+            $results = new ResultSet($mongoCursor, $alias);
 
             if (isset($options['whitelist'])) {
                 return new MongoQuery($results->toArray(), $query->count());
@@ -74,23 +83,23 @@ class Table extends CakeTable
      *
      * @param string $primaryKey
      * @param array $options
-     * @return Cake\ORM\Entity
+     * @return \Cake\ORM\Entity
      * @access public
+     * @throws \Exception
      */
     public function get($primaryKey, $options = [])
     {
         $query = new MongoFinder($this->__getCollection(), $options);
-        $mongoCursor = $query->get($primaryKey);
+        $result = $query->get($primaryKey);
 
-        //if find document, convert to cake entity
-        if ($mongoCursor->count()) {
-            $document = new Document(current(iterator_to_array($mongoCursor)), $this->alias());
+        if ($result) {
+            $document = new Document($result, $this->getAlias());
             return $document->cakefy();
         }
 
         throw new InvalidPrimaryKeyException(sprintf(
             'Record not found in table "%s" with primary key [%s]',
-            $this->_table->table(),
+            $this->_table,
             $primaryKey
         ));
     }
@@ -98,7 +107,7 @@ class Table extends CakeTable
     /**
      * remove one document
      *
-     * @param Cake\Datasource\EntityInterface $entity
+     * @param \Cake\Datasource\EntityInterface $entity
      * @param array $options
      * @return bool
      * @access public
@@ -107,21 +116,46 @@ class Table extends CakeTable
     {
         try {
             $collection = $this->__getCollection();
-            $success = $collection->remove(['_id' => new \MongoId($entity->_id)]);
-        } catch (\MongoException $e) {
+            $delete = $collection->deleteOne(['_id' => new \MongoDB\BSON\ObjectId($entity->_id)]);
+            return (bool)$delete->getDeletedCount();
+        } catch (\Exception $e) {
             trigger_error($e->getMessage());
             return false;
         }
-        return true;
+    }
+
+    /**
+     * delete all rows matching $conditions
+     * @param $conditions
+     * @return int
+     * @throws \Exception
+     */
+    public function deleteAll($conditions)
+    {
+        try {
+            $collection = $this->__getCollection();
+            $query = new MongoFinder($collection, ['where' => $conditions]);
+            $rows = $query->find(['projection' => ['_id' => 1]]);
+            $ids = [];
+            foreach ($rows as $row) {
+                $ids[] = $row->_id;
+            }
+            $delete = $collection->deleteMany(['_id' => ['$in' => $ids]]);
+            return $delete->getDeletedCount();
+        } catch (\Exception $e) {
+            trigger_error($e->getMessage());
+            return false;
+        }
     }
 
     /**
      * save the document
      *
-     * @param \Cake\ORM\Entity $entity
+     * @param EntityInterface $entity
      * @param array $options
      * @return mixed $success
      * @access public
+     * @throws \Exception
      */
     public function save(EntityInterface $entity, $options = [])
     {
@@ -131,11 +165,11 @@ class Table extends CakeTable
             '_primary' => true
         ]);
 
-        if ($entity->errors()) {
+        if ($entity->getErrors()) {
             return false;
         }
 
-        if ($entity->isNew() === false && !$entity->dirty()) {
+        if ($entity->isNew() === false && !$entity->isDirty()) {
             return $entity;
         }
 
@@ -144,7 +178,7 @@ class Table extends CakeTable
             if ($options['_primary']) {
                 $this->dispatchEvent('Model.afterSaveCommit', compact('entity', 'options'));
                 $entity->isNew(false);
-                $entity->source($this->registryAlias());
+                $entity->setSource($this->getRegistryAlias());
             }
         }
 
@@ -154,10 +188,11 @@ class Table extends CakeTable
     /**
      * insert or update the document
      *
-     * @param \Cake\ORM\Entity $entity
-     * @param array $options
+     * @param EntityInterface $entity
+     * @param array|ArrayObject $options
      * @return mixed $success
      * @access protected
+     * @throws \Exception
      */
     protected function _processSave($entity, $options)
     {
@@ -175,11 +210,14 @@ class Table extends CakeTable
         $isNew = $entity->isNew();
 
         //convert to mongodate
+        /** @var ChronosInterface $c */
         if (isset($data['created'])) {
-            $data['created']  = new \MongoDate(strtotime($data['created']->toDateTimeString()));
+            $c = $data['created'];
+            $data['created']  = new \MongoDB\BSON\UTCDateTime(strtotime($c->toDateTimeString()));
         }
         if (isset($data['modified'])) {
-            $data['modified'] = new \MongoDate(strtotime($data['modified']->toDateTimeString()));
+            $c = $data['modified'];
+            $data['modified'] = new \MongoDB\BSON\UTCDateTime(strtotime($c->toDateTimeString()));
         }
 
         if ($isNew) {
@@ -193,14 +231,14 @@ class Table extends CakeTable
             $entity->clean();
             if (!$options['_primary']) {
                 $entity->isNew(false);
-                $entity->source($this->registryAlias());
+                $entity->setSource($this->getRegistryAlias());
             }
 
             $success = true;
         }
 
         if (!$success && $isNew) {
-            $entity->unsetProperty($this->primaryKey());
+            $entity->unsetProperty($this->getPrimaryKey());
             $entity->isNew(true);
         }
 
@@ -214,18 +252,19 @@ class Table extends CakeTable
     /**
      * insert new document
      *
-     * @param \Cake\ORM\Entity $entity
+     * @param EntityInterface $entity
      * @param array $data
      * @return mixed $success
      * @access protected
+     * @throws \Exception
      */
     protected function _insert($entity, $data)
     {
-        $primary = (array)$this->primaryKey();
+        $primary = (array)$this->getPrimaryKey();
         if (empty($primary)) {
             $msg = sprintf(
                 'Cannot insert row in "%s" table, it has no primary key.',
-                $this->table()
+                $this->getTable()
             );
             throw new RuntimeException($msg);
         }
@@ -243,9 +282,9 @@ class Table extends CakeTable
         $collection = $this->__getCollection();
 
         if (is_object($collection)) {
-            $r = $collection->insert($data);
-            if ($r['ok'] == false) {
-                $success = false;
+            $result = $collection->insertOne($data);
+            if ($result->isAcknowledged()) {
+                $entity->set('_id', $result->getInsertedId());
             }
         }
         return $success;
@@ -254,32 +293,54 @@ class Table extends CakeTable
     /**
      * update one document
      *
-     * @param \Cake\ORM\Entity $entity
+     * @param EntityInterface $entity
      * @param array $data
      * @return mixed $success
      * @access protected
+     * @throws \Exception
      */
     protected function _update($entity, $data)
     {
         unset($data['_id']);
-
-        $success = $entity;
-        $collection = $this->__getCollection();
-
-        if (is_object($collection)) {
-            $r = $collection->update(['_id' => new \MongoId($entity->_id)], $data);
-            if ($r['ok'] == false) {
-                $success = false;
-            }
-        }
-        return $success;
+        $update = $this->__getCollection()->updateOne(
+            ['_id' => new \MongoDB\BSON\ObjectId($entity->_id)],
+            ['$set' => $data]
+        );
+        return (bool)$update->getModifiedCount();
     }
 
     /**
-     * create new MongoId
+     * Update $fields for rows matching $conditions
+     * @param array $fields
+     * @param array $conditions
+     * @return bool|int|null
+     */
+    public function updateAll($fields, $conditions)
+    {
+        try {
+            $collection = $this->__getCollection();
+            $query = new MongoFinder($collection, ['where' => $conditions]);
+            $rows = $query->find(['projection' => ['_id' => 1]]);
+            $ids = [];
+            foreach ($rows as $row) {
+                $ids[] = $row->_id;
+            }
+            $data = [
+                '$set' => $fields
+            ];
+            $update = $collection->updateMany(['_id' => ['$in' => $ids]], $data);
+            return $update->getModifiedCount();
+        } catch (\Exception $e) {
+            trigger_error($e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * create new MongoDB\BSON\ObjectId
      *
      * @param mixed $primary
-     * @return MongoId
+     * @return \MongoDB\BSON\ObjectId
      * @access public
      */
     protected function _newId($primary)
@@ -288,6 +349,6 @@ class Table extends CakeTable
             return null;
         }
 
-        return new \MongoId();
+        return new \MongoDB\BSON\ObjectId();
     }
 }

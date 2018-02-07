@@ -2,8 +2,8 @@
 
 namespace Hayko\Mongodb\ORM;
 
-use Cake\I18n\Time;
 use Cake\ORM\Entity;
+use Exception;
 
 class Document
 {
@@ -27,7 +27,7 @@ class Document
     /**
      * set document and table name
      *
-     * @param array $document
+     * @param array|\Traversable $document
      * @param string $table
      * @access public
      */
@@ -40,29 +40,35 @@ class Document
     /**
      * convert mongo document into cake entity
      *
-     * @return Cake\ORM\Entity
+     * @return \Cake\ORM\Entity
      * @access public
+     * @throws Exception
      */
     public function cakefy()
     {
+        $document = [];
         foreach ($this->_document as $field => $value) {
             $type = gettype($value);
             if ($type == 'object') {
                 switch (get_class($value)) {
-                    case 'MongoId':
+                    case 'MongoDB\BSON\ObjectId':
                         $document[$field] = $value->__toString();
                         break;
 
-                    case 'MongoDate':
-                        $document[$field] = new Time($value->sec);
+                    case 'MongoDB\BSON\UTCDateTime':
+                        $document[$field] = $value->toDateTime();
                         break;
 
+                    case 'MongoDB\Model\BSONDocument':
                     default:
-                        throw new Exception(get_class($value) . ' conversion not implemented.');
-                        break;
+                        if ($value instanceof \MongoDB\BSON\Serializable) {
+                            $document[$field] = $value->bsonSerialize();
+                        } else {
+                            throw new Exception(get_class($value) . ' conversion not implemented.');
+                        }
                 }
             } elseif ($type == 'array') {
-                $document[$field] = $this->cakefy($value);
+                $document[$field] = $this->cakefy();
             } else {
                 $document[$field] = $value;
             }

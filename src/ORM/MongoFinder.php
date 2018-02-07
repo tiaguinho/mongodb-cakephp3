@@ -2,7 +2,8 @@
 
 namespace Hayko\Mongodb\ORM;
 
-use Cake\Datasource\EntityInterface;
+use Cake\Utility\Hash;
+use MongoDB\Collection;
 
 class MongoFinder
 {
@@ -10,7 +11,7 @@ class MongoFinder
     /**
      * connection with db
      *
-     * @var Mongo $_connection
+     * @var \MongoDB\Collection $_connection
      * @access protected
      */
     protected $_connection;
@@ -37,7 +38,7 @@ class MongoFinder
     /**
      * set connection and options to find
      *
-     * @param Mongo $connection
+     * @param Collection $connection
      * @param array $options
      * @access public
      */
@@ -51,17 +52,42 @@ class MongoFinder
             unset($this->_options['conditions']);
         }
 
-        $this->__normalizeFieldsName($this->_options);
         if (!empty($this->_options['where'])) {
+            $this->__translateNestedArray($this->_options['where']);
             $this->__translateConditions($this->_options['where']);
+        }
+    }
+
+    /**
+     * Convert ['foo' => 'bar', ['baz' => true]]
+     * to
+     * ['$and' => [['foo', 'bar'], ['$and' => ['baz' => true]]]
+     * @param $conditions
+     */
+    private function __translateNestedArray(&$conditions)
+    {
+        $and = isset($conditions['$and']) ? (array)$conditions['$and'] : [];
+        foreach ($conditions as $key => $value) {
+            if (is_numeric($key) && is_array($value)) {
+                unset($conditions[$key]);
+                $and[] = $value;
+            } elseif (is_array($value) && !in_array(strtoupper($key), ['OR', '$OR', 'AND', '$AND'])) {
+                $this->__translateNestedArray($conditions[$key]);
+            }
+        }
+        if (!empty($and)) {
+            $conditions['$and'] = $and;
+            foreach (array_keys($conditions['$and']) as $key) {
+                $this->__translateNestedArray($conditions['$and'][$key]);
+            }
         }
     }
 
     /**
      * connection
      *
-     * @param Mongo $connection
-     * @return Mongo
+     * @param Collection $connection
+     * @return Collection
      * @access public
      */
     public function connection($connection = null)
@@ -71,27 +97,6 @@ class MongoFinder
         }
 
         $this->_connection = $connection;
-    }
-
-    /**
-     * remove model name from the key
-     *
-     * example: Categories.name -> name
-     * @param array $data
-     * @access private
-     */
-    private function __normalizeFieldsName(&$data)
-    {
-        foreach ($data as $key => &$value) {
-            if (is_array($value)) {
-                $this->__normalizeFieldsName($value);
-            }
-            if (strpos($key, '.') !== false) {
-                list($collection, $field) = explode('.', $key);
-                $data[$field] = $value;
-                unset($data[$key]);
-            }
-        }
     }
 
     /**
@@ -108,100 +113,59 @@ class MongoFinder
      *
      * @param array $conditions
      * @access private
+     * @return array
      */
     private function __translateConditions(&$conditions)
     {
-        foreach ($conditions as $key => &$value) {
-            $uKey = strtoupper($key);
-            if (substr($uKey, -6) === 'NOT IN') {
-                // 'Special' case because it has a space in it, and it's the whole key
-                $field = trim(substr($key, 0, -6));
-
-                $conditions[$field]['$nin'] = $value;
-                unset($conditions[$key]);
-                continue;
-            }
-            if ($uKey === 'OR') {
-                unset($conditions[$key]);
-                foreach ($value as $key => $part) {
-                    $part = array($key => $part);
-                    $this->__translateConditions($Model, $part);
-                    $conditions['$or'][] = $part;
-                }
-                continue;
-            }
-            if ($key === '_id' && is_array($value)) {
-                //_id=>array(1,2,3) pattern, set  $in operator
-                $isMongoOperator = false;
-                foreach ($value as $idKey => $idValue) {
-                    //check a mongo operator exists
-                    if (substr($idKey, 0, 1) === '$') {
-                        $isMongoOperator = true;
-                        continue;
-                    }
-                }
-                unset($idKey, $idValue);
-                if ($isMongoOperator === false) {
-                    $conditions[$key] = array('$in' => $value);
-                }
-                continue;
-            }
+        $operators = '<|>|<=|>=|!=|=|<>|IN|LIKE';
+        foreach ($conditions as $key => $value) {
             if (is_numeric($key) && is_array($value)) {
-                if ($this->_translateConditions($Model, $value)) {
-                    continue;
+                $this->__translateConditions($conditions[$key]);
+            } elseif (preg_match("/^(.+) ($operators)$/", $key, $matches)) {
+                list(, $field, $operator) = $matches;
+                if (substr($field, -3) === 'NOT') {
+                    $field = substr($field, 0, strlen($field) -4);
+                    $operator = 'NOT '.$operator;
                 }
-            }
-            if (substr($uKey, -3) === 'NOT') {
-                // 'Special' case because it's awkward
-                $childKey = key($value);
-                $childValue = current($value);
-
-                if (in_array(substr($childKey, -1), array('>', '<', '='))) {
-                    $parts = explode(' ', $childKey);
-                    $operator = array_pop($parts);
-                    if ($operator = $this->_translateOperator($Model, $operator)) {
-                        $childKey = implode(' ', $parts);
+                $operator = $this->__translateOperator(strtoupper($operator));
+                unset($conditions[$key]);
+                if (substr($operator, -4) === 'LIKE') {
+                    $value = str_replace('%', '.*', $value);
+                    $value = str_replace('?', '.', $value);
+                    if ($operator === 'NOT LIKE') {
+                        $value = "(?!$value)";
                     }
-                } else {
-                    $conditions[$childKey]['$nin'] = (array)$childValue;
-                    unset($conditions['NOT']);
-                    continue;
+                    $operator = '$regex';
+                    $value = new \MongoDB\BSON\Regex("^$value$", "i");
                 }
-
-                $conditions[$childKey]['$not'][$operator] = $childValue;
-                unset($conditions['NOT']);
-                continue;
-            }
-            if (substr($uKey, -4) == 'LIKE') {
-                if ($value[0] === '%') {
-                    $value = substr($value, 1);
-                } else {
-                    $value = '^' . $value;
-                }
-                if (substr($value, -1) === '%') {
-                    $value = substr($value, 0, -1);
-                } else {
-                    $value .= '$';
-                }
-                $value = str_replace('%', '.*', $value);
-
-                $conditions[substr($key, 0, -5)] = new \MongoRegex("/$value/i");
+                $conditions[$field][$operator] = $value;
+            } elseif (preg_match('/^OR|AND$/i', $key, $match)) {
+                $operator = '$' . strtolower($match[0]);
                 unset($conditions[$key]);
-            }
-            if (!in_array(substr($key, -1), array('>', '<', '='))) {
-                continue;
-            }
-            $parts = explode(' ', $key);
-            $operator = array_pop($parts);
-            if ($operator = $this->_translateOperator($Model, $operator)) {
-                $newKey = implode(' ', $parts);
-                $conditions[$newKey][$operator] = $value;
-                unset($conditions[$key]);
-            }
-            if (is_array($value)) {
-                if ($this->_translateConditions($Model, $value)) {
-                    continue;
+                foreach ($value as $nestedKey => $nestedValue) {
+                    if (!is_array($nestedValue)) {
+                        $nestedValue = [$nestedKey => $nestedValue];
+                        $conditions[$operator][$nestedKey] = $nestedValue;
+                    } else {
+                        $conditions[$operator][$nestedKey] = $nestedValue;
+                    }
+                    $this->__translateConditions($conditions[$operator][$nestedKey]);
                 }
+            } elseif (preg_match("/^(.+) (<|>|<=|>=|!=|=) (.+)$/", $key, $matches)
+                || (is_string($value) && preg_match("/^(.+) (<|>|<=|>=|!=|=) (.+)$/", $value, $matches))
+            ) {
+                unset($conditions[$key]);
+                array_splice($matches, 0, 1);
+                $conditions['$where'] = implode(' ', array_map(function ($v) {
+                    if (preg_match("/^[\w.]+$/", $v)
+                        && substr($v, 0, strlen('this')) !== 'this'
+                    ) {
+                        $v = "this.$v";
+                    }
+                    return $v;
+                }, $matches));
+            } elseif ($key === '_id' && is_string($value)) {
+                $conditions[$key] = new \MongoDB\BSON\ObjectId($value);
             }
         }
 
@@ -209,34 +173,39 @@ class MongoFinder
     }
 
     /**
+     * Convert logical operator to MongoDB Query Selectors
+     * @param string $operator
+     * @return string
+     */
+    private function __translateOperator($operator)
+    {
+        switch ($operator) {
+            case '<': return '$lt';
+            case '<=': return '$lte';
+            case '>': return '$gt';
+            case '>=': return '$gte';
+            case '=': return '$eq';
+            case '!=':
+            case '<>': return '$ne';
+            case 'NOT IN': return '$nin';
+            case 'IN': return '$in';
+            default: return $operator;
+        }
+    }
+
+    /**
      * try to find documents
      *
-     * @return MongoCursor $cursor
+     * @param array $options
+     * @return \MongoDB\Driver\Cursor $cursor
      * @access public
      */
-    public function find()
+    public function find(array $options = [])
     {
-        $cursor = $this->connection()->find($this->_options['where'], $this->_options['fields']);
-        $this->_totalRows = $cursor->count();
-
-        if ($this->_totalRows > 0) {
-            if (!empty($this->_options['order'])) {
-                foreach ($this->_options['order'] as $field => $direction) {
-                    $sort[$field] = $direction == 'asc' ? 1 : -1;
-                }
-
-                $cursor->sort($sort);
-            }
-
-            if (!empty($this->_options['page']) && $this->_options['page'] > 1) {
-                $skip = $this->_options['limit'] * ($this->_options['page'] - 1);
-                $cursor->skip($skip);
-            }
-
-            if (!empty($this->_options['limit'])) {
-                $cursor->limit($this->_options['limit']);
-            }
-        }
+        $this->__sortOption($options);
+        $this->__limitOption($options);
+        $cursor = $this->connection()->find($this->_options['where'], $options);
+        $this->_totalRows = count($cursor);
 
         return $cursor;
     }
@@ -244,7 +213,7 @@ class MongoFinder
     /**
      * return all documents
      *
-     * @return MongoCursor
+     * @return \MongoDB\Driver\Cursor
      * @access public
      */
     public function findAll()
@@ -255,26 +224,92 @@ class MongoFinder
     /**
      * return all documents
      *
-     * @return MongoCursor
+     * @return array
      * @access public
      */
     public function findList()
     {
-        return $this->find();
+        $results = [];
+        $keyField = isset($this->_options['keyField'])
+            ? $this->_options['keyField']
+            : '_id'
+        ;
+        $valueField = isset($this->_options['valueField'])
+            ? $this->_options['valueField']
+            : 'name'
+        ;
+
+        $cursor = $this->find(['projection' => [$keyField => 1, $valueField => 1]]);
+        foreach (iterator_to_array($cursor) as $value) {
+            $key = (string)Hash::get((array)$value, $keyField, '');
+            if ($key) {
+                $results[$key] = (string)Hash::get((array)$value, $valueField, '');
+            }
+        }
+        return $results;
+    }
+
+    /**
+     * return all documents
+     *
+     * @param array $options
+     * @return array|object
+     * @access public
+     */
+    public function findFirst(array $options = [])
+    {
+        $this->__sortOption($options);
+        $result = $this->connection()->findOne($this->_options['where'], $options);
+        $this->_totalRows = (int)((bool)$result);
+        return $result;
+    }
+
+    /**
+     * Append sort to options with $this->_options['order']
+     * @param array $options
+     */
+    private function __sortOption(array &$options)
+    {
+        if (!empty($this->_options['order'])) {
+            $options['sort'] = array_map(
+                function ($v) {
+                    return strtolower((string)$v) === 'desc' ? -1 : 1;
+                },
+                Hash::get($options, 'sort', [])
+                + Hash::normalize((array)$this->_options['order'])
+            );
+        }
+    }
+
+    /**
+     * Append limit and skip options
+     * @param array $options
+     */
+    private function __limitOption(array &$options)
+    {
+        if (!empty($this->_options['limit']) && !isset($options['limit'])) {
+            $options['limit'] = $this->_options['limit'];
+        }
+        if (!empty($this->_options['page']) && $this->_options['page'] > 1
+            && !empty($options['limit'])
+            && !isset($options['skip'])
+        ) {
+            $options['skip'] = $options['limit'] * ($this->_options['page'] -1);
+        }
     }
 
     /**
      * return document with _id = $primaKey
      *
      * @param string $primaryKey
-     * @return MongoCursor
+     * @return array|object
      * @access public
      */
     public function get($primaryKey)
     {
-        $this->_options['where']['_id'] = new \MongoId($primaryKey);
+        $this->_options['where']['_id'] = new \MongoDB\BSON\ObjectId($primaryKey);
 
-        return $this->find();
+        return $this->findFirst();
     }
 
     /**

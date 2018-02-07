@@ -3,7 +3,7 @@
 namespace Hayko\Mongodb\Database\Schema;
 
 use Hayko\Mongodb\Database\Driver\Mongodb;
-use Cake\Database\Schema\Table;
+use Cake\Database\Schema\TableSchema;
 
 class MongoSchema
 {
@@ -19,8 +19,7 @@ class MongoSchema
     /**
      * Constructor
      *
-     * @param ConnectionInterface $conn
-     * @return void
+     * @param Mongodb $conn
      * @access public
      */
     public function __construct(Mongodb $conn)
@@ -32,18 +31,19 @@ class MongoSchema
      * Describe
      *
      * @access public
+     * @param $name
+     * @return TableSchema
      */
-    public function describe($name, array $options = [])
+    public function describe($name)
     {
-        $config = $this->_connection->config();
         if (strpos($name, '.')) {
-            list($config['schema'], $name) = explode('.', $name);
+            list(, $name) = explode('.', $name);
         }
 
-        $table = new Table(['table' => $name]);
+        $table = new TableSchema($name);
 
         if (empty($table->primaryKey())) {
-            $table->addColumn('_id', ['type' => 'string', 'default' => new \MongoId(), 'null' => false]);
+            $table->addColumn('_id', ['type' => 'string', 'default' => new \MongoDB\BSON\ObjectId(), 'null' => false]);
             $table->addConstraint('_id', ['type' => 'primary', 'columns' => ['_id']]);
         }
 
