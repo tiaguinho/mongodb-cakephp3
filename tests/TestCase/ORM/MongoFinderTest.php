@@ -41,10 +41,7 @@ class MongoFinderTest extends TestCase
     public function tearDown()
     {
         parent::tearDown();
-        $rows = $this->table->find('all');
-        foreach ($rows as $entity) {
-            $this->table->delete($entity);
-        }
+        $this->table->deleteAll([]);
         TableRegistry::clear();
     }
 

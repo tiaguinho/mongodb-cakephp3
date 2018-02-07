@@ -113,11 +113,35 @@ class Table extends CakeTable
         try {
             $collection = $this->__getCollection();
             $success = $collection->deleteOne(['_id' => new \MongoDB\BSON\ObjectId($entity->_id)]);
-        } catch (\MongoException $e) {
+        } catch (\Exception $e) {
             trigger_error($e->getMessage());
             return false;
         }
         return $success;
+    }
+
+    /**
+     * delete all rows matching $conditions
+     * @param $conditions
+     * @return int
+     * @throws \Exception
+     */
+    public function deleteAll($conditions)
+    {
+        try {
+            $collection = $this->__getCollection();
+            $query = new MongoFinder($collection);
+            $rows = $query->find(['projection' => ['_id' => 1]]);
+            $ids = [];
+            foreach ($rows as $row) {
+                $ids[] = $row->_id;
+            }
+            $delete = $collection->deleteMany(['_id' => ['$in' => $ids]]);
+            return $delete->getDeletedCount();
+        } catch (\Exception $e) {
+            trigger_error($e->getMessage());
+            return false;
+        }
     }
 
     /**
