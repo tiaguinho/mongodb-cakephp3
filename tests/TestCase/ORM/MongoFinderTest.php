@@ -143,6 +143,10 @@ class MongoFinderTest extends TestCase
             '_id' => $entity->get('_id')
         ];
         $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
+
+        $results = $this->table->find('all', ['limit' => 2, 'page' => 2]);
+        $this->assertEquals(2, count($results));
+        $this->assertEquals(150, $results[1]->get('bar'));
     }
 
     public function testFindFirst()

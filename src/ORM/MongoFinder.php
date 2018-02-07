@@ -203,19 +203,9 @@ class MongoFinder
     public function find(array $options = [])
     {
         $this->__sortOption($options);
+        $this->__limitOption($options);
         $cursor = $this->connection()->find($this->_options['where'], $options);
         $this->_totalRows = count($cursor);
-
-        if ($this->_totalRows > 0) {
-            if (!empty($this->_options['page']) && $this->_options['page'] > 1) {
-                $skip = $this->_options['limit'] * ($this->_options['page'] - 1);
-                $cursor->skip($skip);
-            }
-
-            if (!empty($this->_options['limit'])) {
-                $cursor->limit($this->_options['limit']);
-            }
-        }
 
         return $cursor;
     }
@@ -271,6 +261,23 @@ class MongoFinder
                 Hash::get($options, 'sort', [])
                 + Hash::normalize((array)$this->_options['order'])
             );
+        }
+    }
+
+    /**
+     * Append limit and skip options
+     * @param array $options
+     */
+    private function __limitOption(array &$options)
+    {
+        if (!empty($this->_options['limit']) && !isset($options['limit'])) {
+            $options['limit'] = $this->_options['limit'];
+        }
+        if (!empty($this->_options['page']) && $this->_options['page'] > 1
+            && !empty($options['limit'])
+            && !isset($options['skip'])
+        ) {
+            $options['skip'] = $options['limit'] * ($this->_options['page'] -1);
         }
     }
 
