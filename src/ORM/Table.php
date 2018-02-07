@@ -130,7 +130,7 @@ class Table extends CakeTable
     {
         try {
             $collection = $this->__getCollection();
-            $query = new MongoFinder($collection);
+            $query = new MongoFinder($collection, ['where' => $conditions]);
             $rows = $query->find(['projection' => ['_id' => 1]]);
             $ids = [];
             foreach ($rows as $row) {
@@ -291,17 +291,38 @@ class Table extends CakeTable
     protected function _update($entity, $data)
     {
         unset($data['_id']);
+        $update = $this->__getCollection()->updateOne(
+            ['_id' => new \MongoDB\BSON\ObjectId($entity->_id)],
+            ['$set' => $data]
+        );
+        return (bool)$update->getModifiedCount();
+    }
 
-        $success = $entity;
-        $collection = $this->__getCollection();
-
-        if (is_object($collection)) {
-            $r = $collection->update(['_id' => new \MongoDB\BSON\ObjectId($entity->_id)], $data);
-            if ($r['ok'] == false) {
-                $success = false;
+    /**
+     * Update $fields for rows matching $conditions
+     * @param array $fields
+     * @param array $conditions
+     * @return bool|int|null
+     */
+    public function updateAll($fields, $conditions)
+    {
+        try {
+            $collection = $this->__getCollection();
+            $query = new MongoFinder($collection, ['where' => $conditions]);
+            $rows = $query->find(['projection' => ['_id' => 1]]);
+            $ids = [];
+            foreach ($rows as $row) {
+                $ids[] = $row->_id;
             }
+            $data = [
+                '$set' => $fields
+            ];
+            $update = $collection->updateMany(['_id' => ['$in' => $ids]], $data);
+            return $update->getModifiedCount();
+        } catch (\Exception $e) {
+            trigger_error($e->getMessage());
+            return false;
         }
-        return $success;
     }
 
     /**

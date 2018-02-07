@@ -174,4 +174,18 @@ class MongoFinderTest extends TestCase
         ];
         $this->assertEquals($expected, $this->table->find('list'));
     }
+
+    public function testUpdate()
+    {
+        $entity1 = $this->table->save($this->table->newEntity(['name' => 'foo', 'baz' => true]));
+        $this->table->save($this->table->newEntity(['name' => 'bar', 'baz' => false]));
+        $this->table->save($this->table->newEntity(['name' => 'baz', 'baz' => false]));
+        $entity1->set('name', 'biz');
+        $this->assertTrue((bool)$this->table->save($entity1));
+
+        $expected = 'biz';
+        $this->assertEquals($expected, $this->table->find('first', ['where' => ['baz' => true]])->get('name'));
+
+        $this->assertEquals(2, $this->table->updateAll(['name' => 'foo'], ['baz' => false]));
+    }
 }
