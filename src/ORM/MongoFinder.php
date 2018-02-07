@@ -158,8 +158,8 @@ class MongoFinder
                     $value = new \MongoDB\BSON\Regex("^$value$", "i");
                 }
                 $conditions[$field][$operator] = $value;
-            } elseif (preg_match('/^OR|AND|NOT$/i', $key, $match)) {
-                $operator = '$'.strtolower($match[0]);
+            } elseif (preg_match('/^OR|AND$/i', $key, $match)) {
+                $operator = '$' . strtolower($match[0]);
                 unset($conditions[$key]);
                 foreach ($value as $nestedKey => $nestedValue) {
                     if (!is_array($nestedValue)) {
