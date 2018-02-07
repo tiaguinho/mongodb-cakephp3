@@ -21,7 +21,6 @@ class MongoTestsTable extends Table
 }
 class MongoTest extends Entity
 {
-
 }
 
 class MongoFinderTest extends TestCase

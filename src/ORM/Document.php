@@ -2,7 +2,6 @@
 
 namespace Hayko\Mongodb\ORM;
 
-use Cake\I18n\Time;
 use Cake\ORM\Entity;
 use Exception;
 
@@ -28,7 +27,7 @@ class Document
     /**
      * set document and table name
      *
-     * @param array $document
+     * @param array|\Traversable $document
      * @param string $table
      * @access public
      */
@@ -69,7 +68,7 @@ class Document
                         }
                 }
             } elseif ($type == 'array') {
-                $document[$field] = $this->cakefy($value);
+                $document[$field] = $this->cakefy();
             } else {
                 $document[$field] = $value;
             }

@@ -2,6 +2,7 @@
 
 namespace Hayko\Mongodb\Database;
 
+use Cake\Database\Exception\MissingConnectionException;
 use Hayko\Mongodb\Database\Driver\Mongodb as Haykodb;
 use Hayko\Mongodb\Database\Schema\MongoSchema;
 
@@ -18,8 +19,7 @@ class Connection extends \Cake\Database\Connection
     /**
      * Database Driver object
      *
-     * @var resource
-     * @access protected
+     * @var \Hayko\Mongodb\Database\Driver\Mongodb;
      */
     protected $_driver = null;
 
@@ -93,7 +93,7 @@ class Connection extends \Cake\Database\Connection
         try {
             $this->_driver->connect();
             return true;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             throw new MissingConnectionException(['reason' => $e->getMessage()]);
         }
     }
@@ -116,7 +116,7 @@ class Connection extends \Cake\Database\Connection
     /**
      * database connection status
      *
-     * @return booelan
+     * @return bool
      * @access public
      */
     public function isConnected()

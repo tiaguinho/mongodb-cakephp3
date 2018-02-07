@@ -3,6 +3,7 @@
 namespace Hayko\Mongodb\ORM;
 
 use Cake\Utility\Hash;
+use MongoDB\Collection;
 
 class MongoFinder
 {
@@ -37,7 +38,7 @@ class MongoFinder
     /**
      * set connection and options to find
      *
-     * @param Mongo $connection
+     * @param Collection $connection
      * @param array $options
      * @access public
      */
@@ -71,7 +72,7 @@ class MongoFinder
                 unset($conditions[$key]);
                 $and[] = $value;
             } elseif (is_array($value) && !in_array(strtoupper($key), ['OR', '$OR', 'AND', '$AND'])) {
-                $this->__translateNestedArray($conditions[$key], $key);
+                $this->__translateNestedArray($conditions[$key]);
             }
         }
         if (!empty($and)) {
@@ -85,8 +86,8 @@ class MongoFinder
     /**
      * connection
      *
-     * @param Mongo $connection
-     * @return \MongoDB\Collection
+     * @param Collection $connection
+     * @return Collection
      * @access public
      */
     public function connection($connection = null)
@@ -149,14 +150,13 @@ class MongoFinder
                         $conditions[$operator][$nestedKey] = $nestedValue;
                     }
                     $this->__translateConditions($conditions[$operator][$nestedKey]);
-
                 }
             } elseif (preg_match("/^(.+) (<|>|<=|>=|!=|=) (.+)$/", $key, $matches)
                 || (is_string($value) && preg_match("/^(.+) (<|>|<=|>=|!=|=) (.+)$/", $value, $matches))
             ) {
                 unset($conditions[$key]);
                 array_splice($matches, 0, 1);
-                $conditions['$where'] = implode(' ', array_map(function($v) {
+                $conditions['$where'] = implode(' ', array_map(function ($v) {
                     if (preg_match("/^[\w.]+$/", $v)
                         && substr($v, 0, strlen('this')) !== 'this'
                     ) {
@@ -240,9 +240,6 @@ class MongoFinder
         ;
 
         $cursor = $this->find(['projection' => [$keyField => 1, $valueField => 1]]);
-        if (!$cursor) {
-            return $cursor;
-        }
         foreach (iterator_to_array($cursor) as $value) {
             $key = (string)Hash::get((array)$value, $keyField, '');
             if ($key) {
@@ -256,7 +253,7 @@ class MongoFinder
      * return all documents
      *
      * @param array $options
-     * @return \MongoDB\Model\BSONDocument
+     * @return array|object
      * @access public
      */
     public function findFirst(array $options = [])
@@ -275,7 +272,7 @@ class MongoFinder
     {
         if (!empty($this->_options['order'])) {
             $options['sort'] = array_map(
-                function($v) {
+                function ($v) {
                     return strtolower((string)$v) === 'desc' ? -1 : 1;
                 },
                 Hash::get($options, 'sort', [])
@@ -305,7 +302,7 @@ class MongoFinder
      * return document with _id = $primaKey
      *
      * @param string $primaryKey
-     * @return \MongoDB\Model\BSONDocument
+     * @return array|object
      * @access public
      */
     public function get($primaryKey)

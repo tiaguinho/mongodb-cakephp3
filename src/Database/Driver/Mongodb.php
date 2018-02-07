@@ -73,7 +73,7 @@ class Mongodb
     private $connection = null;
 
     /**
-     *
+     * @param $config
      */
     public function __construct($config)
     {
@@ -132,7 +132,7 @@ class Mongodb
                     return false;
                 }
 
-                $tunnel = ssh_tunnel($spongebob, $this->_config['host'], $this->_config['port']);
+                $tunnel = ssh2_tunnel($spongebob, $this->_config['host'], $this->_config['port']);
                 if (!$tunnel) {
                     trigger_error('A SSH tunnel was unable to be created to access '. $this->_config['host'] .':'. $this->_config['port'] .' on '. $this->_config['ssh_user'] .'@'. $this->_config['ssh_host'] .':'. $port);
                 }
@@ -197,7 +197,7 @@ class Mongodb
      * return MongoCollection object
      *
      * @param string $collectionName
-     * @return \MongoDB\Collection
+     * @return \MongoDB\Collection|bool
      * @access public
      */
     public function getCollection($collectionName = '')

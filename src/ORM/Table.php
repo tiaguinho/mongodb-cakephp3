@@ -4,6 +4,7 @@ namespace Hayko\Mongodb\ORM;
 
 use ArrayObject;
 use BadMethodCallException;
+use Cake\Chronos\ChronosInterface;
 use Cake\Datasource\EntityInterface;
 use Cake\Datasource\Exception\InvalidPrimaryKeyException;
 use Cake\ORM\RulesChecker;
@@ -17,11 +18,14 @@ class Table extends CakeTable
      * return MongoCollection object
      *
      * @return \MongoDB\Collection
-     * @access private
+     * @throws \Exception
      */
     private function __getCollection()
     {
         $driver = $this->getConnection()->getDriver();
+        if (!$driver instanceof \Hayko\Mongodb\Database\Driver\Mongodb) {
+            throw new \Exception("Driver must be an instance of 'Hayko\Mongodb\Database\Driver\Mongodb'");
+        }
         $collection = $driver->getCollection($this->getTable());
 
         return $collection;
@@ -44,7 +48,7 @@ class Table extends CakeTable
      *
      * @param string $type
      * @param array $options
-     * @return MongoQuery|\Cake\ORM\Entity
+     * @return \Cake\ORM\Entity|\Cake\ORM\Entity[]|MongoQuery
      * @access public
      * @throws \Exception
      */
@@ -95,7 +99,7 @@ class Table extends CakeTable
 
         throw new InvalidPrimaryKeyException(sprintf(
             'Record not found in table "%s" with primary key [%s]',
-            $this->_table->table(),
+            $this->_table,
             $primaryKey
         ));
     }
@@ -112,12 +116,12 @@ class Table extends CakeTable
     {
         try {
             $collection = $this->__getCollection();
-            $success = $collection->deleteOne(['_id' => new \MongoDB\BSON\ObjectId($entity->_id)]);
+            $delete = $collection->deleteOne(['_id' => new \MongoDB\BSON\ObjectId($entity->_id)]);
+            return (bool)$delete->getDeletedCount();
         } catch (\Exception $e) {
             trigger_error($e->getMessage());
             return false;
         }
-        return $success;
     }
 
     /**
@@ -151,6 +155,7 @@ class Table extends CakeTable
      * @param array $options
      * @return mixed $success
      * @access public
+     * @throws \Exception
      */
     public function save(EntityInterface $entity, $options = [])
     {
@@ -173,7 +178,7 @@ class Table extends CakeTable
             if ($options['_primary']) {
                 $this->dispatchEvent('Model.afterSaveCommit', compact('entity', 'options'));
                 $entity->isNew(false);
-                $entity->source($this->getRegistryAlias());
+                $entity->setSource($this->getRegistryAlias());
             }
         }
 
@@ -183,10 +188,11 @@ class Table extends CakeTable
     /**
      * insert or update the document
      *
-     * @param \Cake\ORM\Entity $entity
-     * @param array $options
+     * @param EntityInterface $entity
+     * @param array|ArrayObject $options
      * @return mixed $success
      * @access protected
+     * @throws \Exception
      */
     protected function _processSave($entity, $options)
     {
@@ -204,11 +210,14 @@ class Table extends CakeTable
         $isNew = $entity->isNew();
 
         //convert to mongodate
+        /** @var ChronosInterface $c */
         if (isset($data['created'])) {
-            $data['created']  = new \MongoDB\BSON\UTCDateTime(strtotime($data['created']->toDateTimeString()));
+            $c = $data['created'];
+            $data['created']  = new \MongoDB\BSON\UTCDateTime(strtotime($c->toDateTimeString()));
         }
         if (isset($data['modified'])) {
-            $data['modified'] = new \MongoDB\BSON\UTCDateTime(strtotime($data['modified']->toDateTimeString()));
+            $c = $data['modified'];
+            $data['modified'] = new \MongoDB\BSON\UTCDateTime(strtotime($c->toDateTimeString()));
         }
 
         if ($isNew) {
@@ -243,10 +252,11 @@ class Table extends CakeTable
     /**
      * insert new document
      *
-     * @param \Cake\ORM\Entity $entity
+     * @param EntityInterface $entity
      * @param array $data
      * @return mixed $success
      * @access protected
+     * @throws \Exception
      */
     protected function _insert($entity, $data)
     {
@@ -283,10 +293,11 @@ class Table extends CakeTable
     /**
      * update one document
      *
-     * @param \Cake\ORM\Entity $entity
+     * @param EntityInterface $entity
      * @param array $data
      * @return mixed $success
      * @access protected
+     * @throws \Exception
      */
     protected function _update($entity, $data)
     {
