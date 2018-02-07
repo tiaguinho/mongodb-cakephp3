@@ -144,4 +144,12 @@ class MongoFinderTest extends TestCase
         ];
         $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
     }
+
+    public function testFindFirst()
+    {
+        $data = ['foo' => 'bar', 'baz' => true];
+        $entity = $this->table->newEntity($data);
+        $this->assertNotFalse($this->table->save($entity));
+        $this->assertNotEmpty($this->table->find('first'));
+    }
 }

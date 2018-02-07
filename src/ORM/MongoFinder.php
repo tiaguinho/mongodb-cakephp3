@@ -8,7 +8,7 @@ class MongoFinder
     /**
      * connection with db
      *
-     * @var \MongoDB\Client $_connection
+     * @var \MongoDB\Collection $_connection
      * @access protected
      */
     protected $_connection;
@@ -49,7 +49,6 @@ class MongoFinder
             unset($this->_options['conditions']);
         }
 
-//        $this->__normalizeFieldsName($this->_options); // How do I search nested data with it ?
         if (!empty($this->_options['where'])) {
             $this->__translateNestedArray($this->_options['where']);
             $this->__translateConditions($this->_options['where']);
@@ -85,7 +84,7 @@ class MongoFinder
      * connection
      *
      * @param Mongo $connection
-     * @return \MongoDB\Client
+     * @return \MongoDB\Collection
      * @access public
      */
     public function connection($connection = null)
@@ -95,27 +94,6 @@ class MongoFinder
         }
 
         $this->_connection = $connection;
-    }
-
-    /**
-     * remove model name from the key
-     *
-     * example: Categories.name -> name
-     * @param array $data
-     * @access private
-     */
-    private function __normalizeFieldsName(&$data)
-    {
-        foreach ($data as $key => &$value) {
-            if (is_array($value)) {
-                $this->__normalizeFieldsName($value);
-            }
-            if (strpos($key, '.') !== false) {
-                list($collection, $field) = explode('.', $key);
-                $data[$field] = $value;
-                unset($data[$key]);
-            }
-        }
     }
 
     /**
@@ -219,9 +197,9 @@ class MongoFinder
      * @return \MongoDB\Driver\Cursor $cursor
      * @access public
      */
-    public function find()
+    public function find(array $options = [])
     {
-        $cursor = $this->connection()->find($this->_options['where'], $this->_options['fields']);
+        $cursor = $this->connection()->find($this->_options['where'], $options);
         $this->_totalRows = count($cursor);
 
         if ($this->_totalRows > 0) {
@@ -266,6 +244,20 @@ class MongoFinder
     public function findList()
     {
         return $this->find();
+    }
+
+    /**
+     * return all documents
+     *
+     * @param array $options
+     * @return \MongoDB\Model\BSONDocument
+     * @access public
+     */
+    public function findFirst(array $options = [])
+    {
+        $cursor = $this->connection()->findOne($this->_options['where'], $options);
+        $this->_totalRows = count($cursor);
+        return $cursor;
     }
 
     /**

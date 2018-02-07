@@ -46,6 +46,7 @@ class Table extends CakeTable
      * @param array $options
      * @return MongoQuery|\Cake\ORM\Entity
      * @access public
+     * @throws \Exception
      */
     public function find($type = 'all', $options = [])
     {
@@ -53,6 +54,9 @@ class Table extends CakeTable
         $method = 'find' . ucfirst($type);
         if (method_exists($query, $method)) {
             $mongoCursor = $query->{$method}();
+            if ($mongoCursor instanceof \MongoDB\Model\BSONDocument) {
+                return (new Document($mongoCursor, $this->getAlias()))->cakefy();
+            }
             $results = new ResultSet($mongoCursor, $this->getAlias());
 
             if (isset($options['whitelist'])) {

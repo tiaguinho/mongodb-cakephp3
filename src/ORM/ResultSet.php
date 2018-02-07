@@ -39,6 +39,7 @@ class ResultSet
      *
      * @return \Cake\ORM\Entity[] $results
      * @access public
+     * @throws \Exception
      */
     public function toArray()
     {
