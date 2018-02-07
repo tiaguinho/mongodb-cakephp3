@@ -83,11 +83,10 @@ class Table extends CakeTable
     public function get($primaryKey, $options = [])
     {
         $query = new MongoFinder($this->__getCollection(), $options);
-        $mongoCursor = $query->get($primaryKey);
+        $result = $query->get($primaryKey);
 
-        //if find document, convert to cake entity
-        if ($mongoCursor->count()) {
-            $document = new Document(current(iterator_to_array($mongoCursor)), $this->alias());
+        if ($result) {
+            $document = new Document($result, $this->getAlias());
             return $document->cakefy();
         }
 
@@ -134,11 +133,11 @@ class Table extends CakeTable
             '_primary' => true
         ]);
 
-        if ($entity->errors()) {
+        if ($entity->getErrors()) {
             return false;
         }
 
-        if ($entity->isNew() === false && !$entity->dirty()) {
+        if ($entity->isNew() === false && !$entity->isDirty()) {
             return $entity;
         }
 
@@ -147,7 +146,7 @@ class Table extends CakeTable
             if ($options['_primary']) {
                 $this->dispatchEvent('Model.afterSaveCommit', compact('entity', 'options'));
                 $entity->isNew(false);
-                $entity->source($this->registryAlias());
+                $entity->source($this->getRegistryAlias());
             }
         }
 
@@ -196,14 +195,14 @@ class Table extends CakeTable
             $entity->clean();
             if (!$options['_primary']) {
                 $entity->isNew(false);
-                $entity->source($this->registryAlias());
+                $entity->setSource($this->getRegistryAlias());
             }
 
             $success = true;
         }
 
         if (!$success && $isNew) {
-            $entity->unsetProperty($this->primaryKey());
+            $entity->unsetProperty($this->getPrimaryKey());
             $entity->isNew(true);
         }
 
@@ -224,11 +223,11 @@ class Table extends CakeTable
      */
     protected function _insert($entity, $data)
     {
-        $primary = (array)$this->primaryKey();
+        $primary = (array)$this->getPrimaryKey();
         if (empty($primary)) {
             $msg = sprintf(
                 'Cannot insert row in "%s" table, it has no primary key.',
-                $this->table()
+                $this->getTable()
             );
             throw new RuntimeException($msg);
         }

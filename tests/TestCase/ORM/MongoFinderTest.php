@@ -147,9 +147,19 @@ class MongoFinderTest extends TestCase
 
     public function testFindFirst()
     {
-        $data = ['foo' => 'bar', 'baz' => true];
+        $data = ['foo' => 'zip', 'baz' => true];
         $entity = $this->table->newEntity($data);
         $this->assertNotFalse($this->table->save($entity));
         $this->assertNotEmpty($this->table->find('first'));
+
+        $data = ['foo' => 'bar', 'baz' => false];
+        $entity = $this->table->newEntity($data);
+        $this->assertNotFalse($this->table->save($entity));
+
+        $expected = 'bar';
+        $this->assertEquals($expected, $this->table->find('first', ['order' => 'foo'])->get('foo'));
+
+        $expected = 'zip';
+        $this->assertEquals($expected, $this->table->find('first', ['order' => ['foo' => 'desc']])->get('foo'));
     }
 }

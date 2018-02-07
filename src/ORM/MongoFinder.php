@@ -2,6 +2,8 @@
 
 namespace Hayko\Mongodb\ORM;
 
+use Cake\Utility\Hash;
+
 class MongoFinder
 {
 
@@ -194,23 +196,17 @@ class MongoFinder
     /**
      * try to find documents
      *
+     * @param array $options
      * @return \MongoDB\Driver\Cursor $cursor
      * @access public
      */
     public function find(array $options = [])
     {
+        $this->__sortOption($options);
         $cursor = $this->connection()->find($this->_options['where'], $options);
         $this->_totalRows = count($cursor);
 
         if ($this->_totalRows > 0) {
-            if (!empty($this->_options['order'])) {
-                foreach ($this->_options['order'] as $field => $direction) {
-                    $sort[$field] = $direction == 'asc' ? 1 : -1;
-                }
-
-                $cursor->sort($sort);
-            }
-
             if (!empty($this->_options['page']) && $this->_options['page'] > 1) {
                 $skip = $this->_options['limit'] * ($this->_options['page'] - 1);
                 $cursor->skip($skip);
@@ -255,23 +251,41 @@ class MongoFinder
      */
     public function findFirst(array $options = [])
     {
-        $cursor = $this->connection()->findOne($this->_options['where'], $options);
-        $this->_totalRows = count($cursor);
-        return $cursor;
+        $this->__sortOption($options);
+        $result = $this->connection()->findOne($this->_options['where'], $options);
+        $this->_totalRows = (int)((bool)$result);
+        return $result;
+    }
+
+    /**
+     * Append sort to options with $this->_options['order']
+     * @param array $options
+     */
+    private function __sortOption(array &$options)
+    {
+        if (!empty($this->_options['order'])) {
+            $options['sort'] = array_map(
+                function($v) {
+                    return strtolower((string)$v) === 'desc' ? -1 : 1;
+                },
+                Hash::get($options, 'sort', [])
+                + Hash::normalize((array)$this->_options['order'])
+            );
+        }
     }
 
     /**
      * return document with _id = $primaKey
      *
      * @param string $primaryKey
-     * @return \MongoDB\Driver\Cursor
+     * @return \MongoDB\Model\BSONDocument
      * @access public
      */
     public function get($primaryKey)
     {
         $this->_options['where']['_id'] = new \MongoDB\BSON\ObjectId($primaryKey);
 
-        return $this->find();
+        return $this->findFirst();
     }
 
     /**
