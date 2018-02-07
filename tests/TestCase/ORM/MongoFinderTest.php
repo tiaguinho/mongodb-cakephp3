@@ -166,4 +166,15 @@ class MongoFinderTest extends TestCase
         $expected = 'zip';
         $this->assertEquals($expected, $this->table->find('first', ['order' => ['foo' => 'desc']])->get('foo'));
     }
+
+    public function testFindList()
+    {
+        $entity1 = $this->table->save($this->table->newEntity(['name' => 'foo', 'baz' => true]));
+        $entity2 = $this->table->save($this->table->newEntity(['name' => 'bar', 'baz' => false]));
+        $expected = [
+            (string)$entity1->get('_id') => 'foo',
+            (string)$entity2->get('_id') => 'bar',
+        ];
+        $this->assertEquals($expected, $this->table->find('list'));
+    }
 }

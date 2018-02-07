@@ -224,12 +224,32 @@ class MongoFinder
     /**
      * return all documents
      *
-     * @return \MongoDB\Driver\Cursor
+     * @return array
      * @access public
      */
     public function findList()
     {
-        return $this->find();
+        $results = [];
+        $keyField = isset($this->_options['keyField'])
+            ? $this->_options['keyField']
+            : '_id'
+        ;
+        $valueField = isset($this->_options['valueField'])
+            ? $this->_options['valueField']
+            : 'name'
+        ;
+
+        $cursor = $this->find(['projection' => [$keyField => 1, $valueField => 1]]);
+        if (!$cursor) {
+            return $cursor;
+        }
+        foreach (iterator_to_array($cursor) as $value) {
+            $key = (string)Hash::get((array)$value, $keyField, '');
+            if ($key) {
+                $results[$key] = (string)Hash::get((array)$value, $valueField, '');
+            }
+        }
+        return $results;
     }
 
     /**

@@ -53,11 +53,14 @@ class Table extends CakeTable
         $query = new MongoFinder($this->__getCollection(), $options);
         $method = 'find' . ucfirst($type);
         if (method_exists($query, $method)) {
+            $alias = $this->getAlias();
             $mongoCursor = $query->{$method}();
             if ($mongoCursor instanceof \MongoDB\Model\BSONDocument) {
-                return (new Document($mongoCursor, $this->getAlias()))->cakefy();
+                return (new Document($mongoCursor, $alias))->cakefy();
+            } elseif (is_array($mongoCursor)) {
+                return $mongoCursor;
             }
-            $results = new ResultSet($mongoCursor, $this->getAlias());
+            $results = new ResultSet($mongoCursor, $alias);
 
             if (isset($options['whitelist'])) {
                 return new MongoQuery($results->toArray(), $query->count());
