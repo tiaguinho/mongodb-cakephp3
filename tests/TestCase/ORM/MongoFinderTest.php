@@ -138,11 +138,10 @@ class MongoFinderTest extends TestCase
         ];
         $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
 
-        // FIXME
         $entity = $this->table->find('all')[0];
         $condition = [
             '_id' => $entity->get('_id')
         ];
-//        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
+        $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
     }
 }

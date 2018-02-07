@@ -184,6 +184,8 @@ class MongoFinder
                     }
                     return $v;
                 }, $matches));
+            } elseif ($key === '_id' && is_string($value)) {
+                $conditions[$key] = new \MongoDB\BSON\ObjectId($value);
             }
         }
 
