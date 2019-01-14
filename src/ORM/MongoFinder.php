@@ -205,7 +205,11 @@ class MongoFinder
         $this->__sortOption($options);
         $this->__limitOption($options);
         $cursor = $this->connection()->find($this->_options['where'], $options);
-        $this->_totalRows = count($cursor);
+        if (is_array($cursor) || $cursor instanceof Countable) {
+            $this->_totalRows = count($cursor);
+        }else{
+            $this->_totalRows = 0;
+        }
 
         return $cursor;
     }
