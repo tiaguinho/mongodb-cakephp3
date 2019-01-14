@@ -61,7 +61,7 @@ class Table extends CakeTable
             $mongoCursor = $query->{$method}();
             if ($mongoCursor instanceof \MongoDB\Model\BSONDocument) {
                 return (new Document($mongoCursor, $alias))->cakefy();
-            } elseif (is_array($mongoCursor)) {
+            } elseif (is_null($mongoCursor) || is_array($mongoCursor)) {
                 return $mongoCursor;
             }
             $results = new ResultSet($mongoCursor, $alias);
