@@ -3,6 +3,8 @@
 namespace Hayko\Mongodb\Database\Driver;
 
 use Exception;
+use MongoDB\Collection;
+use MongoDB\Driver\Manager;
 use MongoDB\Driver\ReadPreference;
 
 class Mongodb
@@ -196,7 +198,7 @@ class Mongodb
     /**
      * return MongoCollection object
      *
-     * @param string $collectionName
+     * @param string $collectionName name of collecion
      * @return \MongoDB\Collection|bool
      * @access public
      */
@@ -207,9 +209,11 @@ class Mongodb
                 $this->connect();
             }
 
-            $manager = new \MongoDB\Driver\Manager($this->createConnectionName());
-            return new \MongoDB\Collection($manager, $this->_config['database'], $collectionName);
+            $manager = new Manager($this->createConnectionName());
+
+            return new Collection($manager, $this->_config['database'], $collectionName);
         }
+
         return false;
     }
 
