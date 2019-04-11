@@ -58,12 +58,12 @@ class Mongodb
     protected $_baseConfig = [
         'set_string_id' => true,
         'persistent' => true,
-        'host'             => 'localhost',
-        'database'     => '',
-        'port'             => 27017,
-        'login'     => '',
-        'password'    => '',
-        'replicaset'    => '',
+        'host' => 'localhost',
+        'database' => '',
+        'port' => 27017,
+        'login' => '',
+        'password' => '',
+        'replicaset' => '',
     ];
 
     /**
@@ -75,7 +75,7 @@ class Mongodb
     private $connection = null;
 
     /**
-     * @param $config
+     * @param array $config configuration
      */
     public function __construct($config)
     {
@@ -96,7 +96,7 @@ class Mongodb
     /**
      * connect to the database
      *
-     * @return boolean
+     * @return bool
      * @access public
      */
     public function connect()
@@ -110,33 +110,61 @@ class Mongodb
                 }
                 $spongebob = ssh2_connect($this->_config['ssh_host'], $port);
                 if (!$spongebob) {
-                    trigger_error('Unable to establish a SSH connection to the host at '. $this->_config['ssh_host'] .':'. $port);
+                    trigger_error('Unable to establish a SSH connection to the host at ' . $this->_config['ssh_host'] . ':' . $port);
                 }
                 if (($this->_config['ssh_pubkey_path'] != null) && ($this->_config['ssh_privatekey_path'] != null)) {
                     if ($this->_config['ssh_pubkey_passphrase'] != null) {
                         if (!ssh2_auth_pubkey_file($spongebob, $this->_config['ssh_user'], $this->_config['ssh_pubkey_path'], $this->_config['ssh_privatekey_path'], $this->_config['ssh_pubkey_passphrase'])) {
-                            trigger_error('Unable to connect using the public keys specified at '. $this->_config['ssh_pubkey_path'] .' (for the public key), '. $this->_config['ssh_privatekey_path'] .' (for the private key) on '. $this->_config['ssh_user'] .'@'. $this->_config['ssh_host'] .':'. $port .' (Using a passphrase to decrypt the key)');
+                            trigger_error(
+                                'Unable to connect using the public keys specified at ' .
+                                $this->_config['ssh_pubkey_path'] . ' (for the public key), ' .
+                                $this->_config['ssh_privatekey_path'] . ' (for the private key) on ' .
+                                $this->_config['ssh_user'] . '@' . $this->_config['ssh_host'] . ':' . $port .
+                                ' (Using a passphrase to decrypt the key)'
+                            );
+
                             return false;
                         }
                     } else {
-                        if (!ssh2_auth_pubkey_file($spongebob, $this->_config['ssh_user'], $this->_config['ssh_pubkey_path'], $this->_config['ssh_privatekey_path'])) {
-                            trigger_error('Unable to connect using the public keys specified at '. $this->_config['ssh_pubkey_path'] .' (for the public key), '. $this->_config['ssh_privatekey_path'] .' (for the private key) on '. $this->_config['ssh_user'] .'@'. $this->_config['ssh_host'] .':'. $port .' (Not using a passphrase to decrypt the key)');
+                        if (ssh2_auth_pubkey_file(
+                            $spongebob,
+                            $this->_config['ssh_user'],
+                            $this->_config['ssh_pubkey_path'],
+                            $this->_config['ssh_privatekey_path']
+                        )) {
+                            trigger_error(
+                                'Unable to connect using the public keys specified at ' .
+                                $this->_config['ssh_pubkey_path'] . ' (for the public key), ' .
+                                $this->_config['ssh_privatekey_path'] . ' (for the private key) on ' .
+                                $this->_config['ssh_user'] . '@' . $this->_config['ssh_host'] . ':' .
+                                $port . ' (Not using a passphrase to decrypt the key)'
+                            );
+
                             return false;
                         }
                     }
                 } elseif ($this->_config['ssh_password'] != '') { // While some people *could* have blank passwords, it's a really stupid idea.
                     if (!ssh2_auth_password($spongebob, $this->_config['ssh_user'], $this->_config['ssh_password'])) {
-                        trigger_error('Unable to connect using the username and password combination for '. $this->_config['ssh_user'] .'@'. $this->_config['ssh_host'] .':'. $port);
+                        trigger_error(
+                            'Unable to connect using the username and password combination for ' .
+                            $this->_config['ssh_user'] . '@' . $this->_config['ssh_host'] . ':' . $port
+                        );
+
                         return false;
                     }
                 } else {
                     trigger_error('Neither a password or paths to public & private keys were specified in the configuration.');
+
                     return false;
                 }
 
                 $tunnel = ssh2_tunnel($spongebob, $this->_config['host'], $this->_config['port']);
                 if (!$tunnel) {
-                    trigger_error('A SSH tunnel was unable to be created to access '. $this->_config['host'] .':'. $this->_config['port'] .' on '. $this->_config['ssh_user'] .'@'. $this->_config['ssh_host'] .':'. $port);
+                    trigger_error(
+                        'A SSH tunnel was unable to be created to access ' .
+                        $this->_config['host'] . ':' . $this->_config['port'] . ' on ' .
+                        $this->_config['ssh_user'] . '@' . $this->_config['ssh_host'] . ':' . $port
+                    );
                 }
             }
 
@@ -154,7 +182,8 @@ class Mongodb
 
             if (isset($this->_config['slaveok'])) {
                 $this->connection->getManager()->selectServer(
-                    new ReadPreference($this->_config['slaveok']
+                    new ReadPreference(
+                        $this->_config['slaveok']
                         ? ReadPreference::RP_SECONDARY_PREFERRED
                         : ReadPreference::RP_PRIMARY
                     )
@@ -220,7 +249,7 @@ class Mongodb
     /**
      * disconnect from the database
      *
-     * @return boolean
+     * @return bool
      * @access public
      */
     public function disconnect()
