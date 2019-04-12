@@ -53,9 +53,9 @@ class Table extends CakeTable
      *
      * @param string $type
      * @param array $options
-     * @return \Cake\ORM\Entity|\Cake\ORM\Entity[]|MongoQuery
+     * @return EntityInterface|MongoQuery
      * @access public
-     * @throws \Exception
+     * @throws Exception
      */
     public function find($type = 'all', $options = [])
     {
@@ -88,7 +88,7 @@ class Table extends CakeTable
      *
      * @param string $primaryKey
      * @param array $options
-     * @return \Cake\ORM\Entity
+     * @return EntityInterface
      * @access public
      * @throws Exception
      */
@@ -113,7 +113,7 @@ class Table extends CakeTable
     /**
      * remove one document
      *
-     * @param \Cake\Datasource\EntityInterface $entity
+     * @param EntityInterface $entity
      * @param array $options
      * @return bool
      * @access public
