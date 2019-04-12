@@ -13,6 +13,7 @@ use Exception;
 use Hayko\Mongodb\Database\Driver\Mongodb;
 use MongoDB\BSON\ObjectId;
 use MongoDB\BSON\UTCDateTime;
+use MongoDB\Collection;
 use MongoDB\Model\BSONDocument;
 use RuntimeException;
 
@@ -22,7 +23,7 @@ class Table extends CakeTable
     /**
      * return MongoCollection object
      *
-     * @return \MongoDB\Collection
+     * @return Collection
      * @throws Exception
      */
     private function __getCollection()
