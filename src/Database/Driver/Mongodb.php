@@ -110,11 +110,22 @@ class Mongodb
                 }
                 $spongebob = ssh2_connect($this->_config['ssh_host'], $port);
                 if (!$spongebob) {
-                    trigger_error('Unable to establish a SSH connection to the host at ' . $this->_config['ssh_host'] . ':' . $port);
+                    trigger_error(
+                        'Unable to establish a SSH connection to the host at ' .
+                        $this->_config['ssh_host'] . ':' . $port
+                    );
                 }
-                if (($this->_config['ssh_pubkey_path'] != null) && ($this->_config['ssh_privatekey_path'] != null)) {
+                if (($this->_config['ssh_pubkey_path'] != null) &&
+                    ($this->_config['ssh_privatekey_path'] != null)
+                ) {
                     if ($this->_config['ssh_pubkey_passphrase'] != null) {
-                        if (!ssh2_auth_pubkey_file($spongebob, $this->_config['ssh_user'], $this->_config['ssh_pubkey_path'], $this->_config['ssh_privatekey_path'], $this->_config['ssh_pubkey_passphrase'])) {
+                        if (!ssh2_auth_pubkey_file(
+                            $spongebob,
+                            $this->_config['ssh_user'],
+                            $this->_config['ssh_pubkey_path'],
+                            $this->_config['ssh_privatekey_path'],
+                            $this->_config['ssh_pubkey_passphrase']
+                        )) {
                             trigger_error(
                                 'Unable to connect using the public keys specified at ' .
                                 $this->_config['ssh_pubkey_path'] . ' (for the public key), ' .
