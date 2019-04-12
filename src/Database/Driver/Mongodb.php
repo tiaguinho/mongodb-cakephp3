@@ -4,6 +4,7 @@ namespace Hayko\Mongodb\Database\Driver;
 
 use Exception;
 use MongoDB\Collection;
+use MongoDB\Database;
 use MongoDB\Driver\Manager;
 use MongoDB\Driver\ReadPreference;
 
@@ -31,7 +32,7 @@ class Mongodb
     /**
      * Database Instance
      *
-     * @var \MongoDB\Database
+     * @var Database
      * @access protected
      */
     protected $_db = null;
