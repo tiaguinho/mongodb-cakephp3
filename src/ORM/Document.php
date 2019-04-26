@@ -4,6 +4,7 @@ namespace Hayko\Mongodb\ORM;
 
 use Cake\ORM\Entity;
 use Exception;
+use MongoDB\BSON\Serializable;
 
 class Document
 {
@@ -27,7 +28,7 @@ class Document
     /**
      * set document and table name
      *
-     * @param array|\Traversable $document
+     * @param array|Traversable $document
      * @param string $table
      * @access public
      */
@@ -61,7 +62,7 @@ class Document
 
                     case 'MongoDB\Model\BSONDocument':
                     default:
-                        if ($value instanceof \MongoDB\BSON\Serializable) {
+                        if ($value instanceof Serializable) {
                             $document[$field] = $value->bsonSerialize();
                         } else {
                             throw new Exception(get_class($value) . ' conversion not implemented.');
