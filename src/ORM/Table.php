@@ -85,6 +85,19 @@ class Table extends CakeTable
     }
 
     /**
+     * count documents
+     *
+     * @param array $options
+     * @return int
+     * @access public
+     */
+    public function count($options = [])
+    {
+        $query = new MongoFinder($this->__getCollection(), $options);
+        return $query->connection()->count();
+    }
+
+    /**
      * get the document by _id
      *
      * @param string $primaryKey
