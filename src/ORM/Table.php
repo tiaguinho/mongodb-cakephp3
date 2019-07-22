@@ -9,6 +9,12 @@ use Cake\Datasource\EntityInterface;
 use Cake\Datasource\Exception\InvalidPrimaryKeyException;
 use Cake\ORM\RulesChecker;
 use Cake\ORM\Table as CakeTable;
+use Exception;
+use Hayko\Mongodb\Database\Driver\Mongodb;
+use MongoDB\BSON\ObjectId;
+use MongoDB\BSON\UTCDateTime;
+use MongoDB\Collection;
+use MongoDB\Model\BSONDocument;
 use RuntimeException;
 
 class Table extends CakeTable
@@ -17,14 +23,14 @@ class Table extends CakeTable
     /**
      * return MongoCollection object
      *
-     * @return \MongoDB\Collection
-     * @throws \Exception
+     * @return Collection
+     * @throws Exception
      */
     private function __getCollection()
     {
         $driver = $this->getConnection()->getDriver();
-        if (!$driver instanceof \Hayko\Mongodb\Database\Driver\Mongodb) {
-            throw new \Exception("Driver must be an instance of 'Hayko\Mongodb\Database\Driver\Mongodb'");
+        if (!$driver instanceof Mongodb) {
+            throw new Exception("Driver must be an instance of 'Hayko\Mongodb\Database\Driver\Mongodb'");
         }
         $collection = $driver->getCollection($this->getTable());
 
@@ -48,9 +54,9 @@ class Table extends CakeTable
      *
      * @param string $type
      * @param array $options
-     * @return \Cake\ORM\Entity|\Cake\ORM\Entity[]|MongoQuery
+     * @return EntityInterface|MongoQuery
      * @access public
-     * @throws \Exception
+     * @throws Exception
      */
     public function find($type = 'all', $options = [])
     {
@@ -59,7 +65,7 @@ class Table extends CakeTable
         if (method_exists($query, $method)) {
             $alias = $this->getAlias();
             $mongoCursor = $query->{$method}();
-            if ($mongoCursor instanceof \MongoDB\Model\BSONDocument) {
+            if ($mongoCursor instanceof BSONDocument) {
                 return (new Document($mongoCursor, $alias))->cakefy();
             } elseif (is_null($mongoCursor) || is_array($mongoCursor)) {
                 return $mongoCursor;
@@ -79,13 +85,26 @@ class Table extends CakeTable
     }
 
     /**
+     * count documents
+     *
+     * @param array $options
+     * @return int
+     * @access public
+     */
+    public function count($options = [])
+    {
+        $query = new MongoFinder($this->__getCollection(), $options);
+        return $query->connection()->count();
+    }
+
+    /**
      * get the document by _id
      *
      * @param string $primaryKey
      * @param array $options
-     * @return \Cake\ORM\Entity
+     * @return EntityInterface
      * @access public
-     * @throws \Exception
+     * @throws Exception
      */
     public function get($primaryKey, $options = [])
     {
@@ -94,6 +113,7 @@ class Table extends CakeTable
 
         if ($result) {
             $document = new Document($result, $this->getAlias());
+
             return $document->cakefy();
         }
 
@@ -107,7 +127,7 @@ class Table extends CakeTable
     /**
      * remove one document
      *
-     * @param \Cake\Datasource\EntityInterface $entity
+     * @param EntityInterface $entity
      * @param array $options
      * @return bool
      * @access public
@@ -116,10 +136,10 @@ class Table extends CakeTable
     {
         try {
             $collection = $this->__getCollection();
-            $delete = $collection->deleteOne(['_id' => new \MongoDB\BSON\ObjectId($entity->_id)]);
+            $delete = $collection->deleteOne(['_id' => new ObjectId($entity->_id)]);
+
             return (bool)$delete->getDeletedCount();
-        } catch (\Exception $e) {
-            trigger_error($e->getMessage());
+        } catch (Exception $e) {
             return false;
         }
     }
@@ -141,9 +161,11 @@ class Table extends CakeTable
                 $ids[] = $row->_id;
             }
             $delete = $collection->deleteMany(['_id' => ['$in' => $ids]]);
+
             return $delete->getDeletedCount();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             trigger_error($e->getMessage());
+
             return false;
         }
     }
@@ -213,11 +235,11 @@ class Table extends CakeTable
         /** @var ChronosInterface $c */
         if (isset($data['created'])) {
             $c = $data['created'];
-            $data['created']  = new \MongoDB\BSON\UTCDateTime(strtotime($c->toDateTimeString()));
+            $data['created'] = new UTCDateTime(strtotime($c->toDateTimeString()));
         }
         if (isset($data['modified'])) {
             $c = $data['modified'];
-            $data['modified'] = new \MongoDB\BSON\UTCDateTime(strtotime($c->toDateTimeString()));
+            $data['modified'] = new UTCDateTime(strtotime($c->toDateTimeString()));
         }
 
         if ($isNew) {
@@ -287,6 +309,7 @@ class Table extends CakeTable
                 $entity->set('_id', $result->getInsertedId());
             }
         }
+
         return $success;
     }
 
@@ -303,9 +326,10 @@ class Table extends CakeTable
     {
         unset($data['_id']);
         $update = $this->__getCollection()->updateOne(
-            ['_id' => new \MongoDB\BSON\ObjectId($entity->_id)],
+            ['_id' => new ObjectId($entity->_id)],
             ['$set' => $data]
         );
+
         return (bool)$update->getModifiedCount();
     }
 
@@ -329,9 +353,11 @@ class Table extends CakeTable
                 '$set' => $fields
             ];
             $update = $collection->updateMany(['_id' => ['$in' => $ids]], $data);
+
             return $update->getModifiedCount();
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             trigger_error($e->getMessage());
+
             return false;
         }
     }
@@ -340,7 +366,7 @@ class Table extends CakeTable
      * create new MongoDB\BSON\ObjectId
      *
      * @param mixed $primary
-     * @return \MongoDB\BSON\ObjectId
+     * @return ObjectId
      * @access public
      */
     protected function _newId($primary)
@@ -349,6 +375,6 @@ class Table extends CakeTable
             return null;
         }
 
-        return new \MongoDB\BSON\ObjectId();
+        return new ObjectId();
     }
 }

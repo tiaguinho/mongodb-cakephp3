@@ -4,6 +4,7 @@ namespace Hayko\Mongodb\ORM;
 
 use Cake\ORM\Entity;
 use Exception;
+use MongoDB\BSON\Serializable;
 
 class Document
 {
@@ -27,7 +28,7 @@ class Document
     /**
      * set document and table name
      *
-     * @param array|\Traversable $document
+     * @param array|Traversable $document
      * @param string $table
      * @access public
      */
@@ -60,14 +61,12 @@ class Document
                         $document[$field] = $value->toDateTime();
                         break;
 
-                    case 'MongoDB\Model\BSONDocument':
                     default:     
                         if ($value instanceof \MongoDB\BSON\Serializable) {                  
                                 $document[$field] = $this->serializeObjects($value);
                            } else {
                             throw new Exception(get_class($value) . ' conversion not implemented.');
-                        }
-                }
+                         }
             } elseif ($type == 'array') {
                $document[$field] = $this->cakefy();
             } else {

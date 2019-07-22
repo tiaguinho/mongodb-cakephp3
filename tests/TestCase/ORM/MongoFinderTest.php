@@ -8,6 +8,7 @@ use Cake\ORM\Entity;
 use Cake\ORM\TableRegistry;
 use Cake\TestSuite\TestCase;
 use Hayko\Mongodb\ORM\Table;
+use MongoDB\BSON\Regex;
 
 class MongoTestsTable extends Table
 {
@@ -34,14 +35,14 @@ class MongoFinderTest extends TestCase
     {
         parent::setUp();
         Cache::disable();
-        $this->table = TableRegistry::get('MongoTests', ['className' => 'Hayko\Mongodb\Test\TestCase\ORM\MongoTestsTable']);
+        $this->table = TableRegistry::getTableLocator()->get('MongoTests', ['className' => 'Hayko\Mongodb\Test\TestCase\ORM\MongoTestsTable']);
     }
 
     public function tearDown()
     {
         parent::tearDown();
         $this->table->deleteAll([]);
-        TableRegistry::clear();
+        TableRegistry::getTableLocator()->clear();
     }
 
     public function testFind()
@@ -73,7 +74,7 @@ class MongoFinderTest extends TestCase
         $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
 
         $condition = [
-            'foo.bar' => new \MongoDB\BSON\Regex('^b.*z$', 'i')
+            'foo.bar' => new Regex('^b.*z$', 'i')
         ];
         $this->assertNotEmpty($this->table->find('all', ['where' => $condition]));
 

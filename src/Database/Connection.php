@@ -19,7 +19,7 @@ class Connection extends \Cake\Database\Connection
     /**
      * Database Driver object
      *
-     * @var \Hayko\Mongodb\Database\Driver\Mongodb;
+     * @var Mongodb;
      */
     protected $_driver = null;
 
@@ -68,8 +68,8 @@ class Connection extends \Cake\Database\Connection
     }
 
     /**
-     * @param null $driver
-     * @param array $config
+     * @param null $driver driver
+     * @param array $config configuration
      * @return Haykodb|resource
      */
     public function driver($driver = null, $config = [])
@@ -85,13 +85,14 @@ class Connection extends \Cake\Database\Connection
     /**
      * connect to the database
      *
-     * @return boolean
+     * @return bool
      * @access public
      */
     public function connect()
     {
         try {
             $this->_driver->connect();
+
             return true;
         } catch (\Exception $e) {
             throw new MissingConnectionException(['reason' => $e->getMessage()]);
@@ -101,7 +102,7 @@ class Connection extends \Cake\Database\Connection
     /**
      * disconnect from the database
      *
-     * @return boolean
+     * @return boole
      * @access public
      */
     public function disconnect()
