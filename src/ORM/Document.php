@@ -48,7 +48,7 @@ class Document
     public function cakefy()
     {
         $document = [];
-       
+
         foreach ($this->_document as $field => $value) {
             $type = gettype($value);
             if ($type == 'object') {
@@ -61,30 +61,31 @@ class Document
                         $document[$field] = $value->toDateTime();
                         break;
 
-                    default:     
-                        if ($value instanceof \MongoDB\BSON\Serializable) {                  
-                                $document[$field] = $this->serializeObjects($value);
-                           } else {
+                    default:
+                        if ($value instanceof \MongoDB\BSON\Serializable) {
+                            $document[$field] = $this->serializeObjects($value);
+                        } else {
                             throw new Exception(get_class($value) . ' conversion not implemented.');
-                         }
+                        }
+                }
             } elseif ($type == 'array') {
                $document[$field] = $this->cakefy();
             } else {
                 $document[$field] = $value;
             }
         }
-        
+
         $inflector = new \Cake\Utility\Inflector();
         $entityName = '\\App\\Model\\Entity\\'.$inflector->singularize($this->_registryAlias);
         return new $entityName($document, ['markClean' => true, 'markNew' => false, 'source' => $this->_registryAlias]);
     }
-    
-    
-    
-    
+
+
+
+
     private function serializeObjects($obj){
-       if ($obj instanceof \MongoDB\BSON\Serializable) {      
-          foreach($obj as $field=> $value){         
+       if ($obj instanceof \MongoDB\BSON\Serializable) {
+          foreach($obj as $field=> $value){
                if ($value instanceof \MongoDB\BSON\Serializable) {
                    $obj[$field] = $this->serializeObjects($value);
                }
@@ -92,6 +93,6 @@ class Document
            return $obj->bsonSerialize();
        }else{
            return $obj;
-       }                     
+       }
     }
 }
